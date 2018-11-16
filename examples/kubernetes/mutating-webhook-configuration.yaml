@@ -1,0 +1,25 @@
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: "tumblr-sidecar-injector-webhook"
+  labels:
+    app: k8s-sidecar-injector
+    track: prod
+webhooks:
+- name: "injector.tumblr.com"
+  failurePolicy: "Ignore" # we fail "open" if the webhook is down hard
+  rules:
+  - operations: [ "CREATE" ]
+    apiGroups: [""]
+    apiVersions: ["v1"]
+    resources: ["pods"]
+  clientConfig:
+    # https://github.com/kubernetes/kubernetes/blob/v1.10.0-beta.1/staging/src/k8s.io/api/admissionregistration/v1beta1/types.go#L218
+    # note: k8s is smart enough to use 443 or the only exposed port on the service
+    # note: this requires the service to serve TLS directly (not thru ingress)
+    service:
+      name: "k8s-sidecar-injector-prod"
+      namespace: "kube-system"
+      path: "/mutate"   # what /url/slug to send requests at
+    # See README.md for how this was generated!
+    caBundle: "!!! your base64 encoded cabundle here !!!"

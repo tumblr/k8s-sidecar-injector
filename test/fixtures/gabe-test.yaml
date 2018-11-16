@@ -1,0 +1,21 @@
+---
+name: gabe-test
+environment:
+  - name: NEW_ENV
+    value: "injected-new-env"
+  - name: ENVIRONMENT
+    value: "sidecarproduction"
+  - name: DATACENTER
+    value: "from-injector"
+containers:
+- name: sidecar-nginx
+  image: nginx:1.12.2
+  imagePullPolicy: IfNotPresent
+  env:
+    - name: DATACENTER
+      value: "set-in-sidecar"
+  ports:
+    - containerPort: 80
+- name: sidecar-nginx-2
+  image: nginx:1.12.2
+  imagePullPolicy: IfNotPresent

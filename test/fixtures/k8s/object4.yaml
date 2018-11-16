@@ -1,0 +1,6 @@
+name: object4
+namespace: unittest
+# this should not get any injections cause its already got the "status:injected" annotation
+annotations:
+  "injector.unittest.com/status": "injected"
+  "injector.unittest.com/request": "tumblr-php"

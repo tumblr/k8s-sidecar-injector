@@ -1,0 +1,5 @@
+name: object1
+namespace: unittest
+annotations:
+  "hello": "foo"
+  "injector.unittest.com/request": "env1"

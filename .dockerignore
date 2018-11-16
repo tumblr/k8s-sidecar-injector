@@ -1,0 +1,8 @@
+/vendor
+/.gopath~
+/bin
+Jenkinsfile
+Dockerfile
+README.md
+/ci-cd
+.dockerignore

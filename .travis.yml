@@ -1,0 +1,13 @@
+language: go
+
+go:
+  - "1.x"
+  - "1.11"
+  - master
+
+install:
+  - make vendor
+
+script:
+  - make all
+  - make test
