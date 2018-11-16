@@ -1,0 +1,23 @@
+---
+name: sidecar-test
+env:
+  - name: NEW_ENV
+    value: "injected-new-env"
+  - name: DATACENTER
+    value: "from-injector"
+containers:
+- name: sidecar-nginx
+  image: nginx:1.12.2
+  imagePullPolicy: IfNotPresent
+  env:
+    - name: DATACENTER
+      value: "from-sidecar"
+  ports:
+    - containerPort: 80
+  volumeMounts:
+    - name: nginx-conf
+      mountPath: /etc/nginx
+volumes:
+- name: nginx-conf
+  configMap:
+    name: nginx-configmap

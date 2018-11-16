@@ -1,0 +1,106 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-injectionconfig1
+  namespace: default
+data:
+  complex-sidecar: |
+    name: complex-sidecar
+    volumes:
+    - name: foo-config
+      configMap:
+        name: foo-config
+        items:
+        - key: config.yaml
+          path: twemproxy.yaml
+    containers:
+    - name: foo
+      image: some/container:1.2.3
+      command: ["entrypoint.sh"]
+      livenessProbe:
+        httpGet:
+          path: /
+          port: 420
+        initialDelaySeconds: 3
+        periodSeconds: 10
+      volumeMounts:
+      - name: twem-config
+        mountPath: /etc/foo/conf/
+        readOnly: true
+      resources:
+        requests:
+          cpu: "0.5"
+          memory: "1Gi"
+        limits:
+          cpu: "1.0"
+    - name: async-worker
+      image: async-worker:1.5.6
+      command: ["entrypoint-worker.sh"]
+      livenessProbe:
+        exec:
+          command: ["r-u-ok.sh"]
+        initialDelaySeconds: 3
+        periodSeconds: 10
+      readinessProbe:
+        exec:
+          command: ["wut-am-queue.sh"]
+        initialDelaySeconds: 30
+        periodSeconds: 10
+      env:
+      - name: WORKERS_COUNT
+        value: "3"
+      - name: WORKER_QUEUES
+        value: "x,y,z"
+      - name: DAEMON_ENDPOINT
+        value: "some.endpoint.798"
+      resources:
+        requests:
+          cpu: "4.0"
+          memory: "2Gi"
+        limits:
+          cpu: "4.0"
+          memory: "3Gi"
+    - name: kafka
+      image: kafka:0.10-0.1.0
+      command: ["entrypoint.sh"]
+      args: []
+      ports:
+      - name: kafka
+        containerPort: 9092
+      - name: jmx
+        containerPort: 9192
+      livenessProbe:
+        tcpSocket:
+          port: kafka
+        initialDelaySeconds: 3
+        periodSeconds: 10
+      resources:
+        requests:
+          cpu: "1.0"
+          memory: "1Gi"
+        limits:
+          cpu: "1.0"
+          memory: "3Gi"
+    - name: memcached
+      image: memcached:1.5.8
+      command: ["entrypoint.sh"]
+      args: []
+      ports:
+      - name: tcp
+        containerPort: 11211
+      env:
+      - name: MAX_MEMORY_MB
+        value: "800"
+      livenessProbe:
+        tcpSocket:
+          port: tcp
+        initialDelaySeconds: 3
+        periodSeconds: 10
+      resources:
+        requests:
+          cpu: "1.0"
+          memory: "1Gi"
+        limits:
+          cpu: "1.0"
+    

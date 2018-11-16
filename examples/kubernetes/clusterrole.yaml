@@ -1,0 +1,8 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: k8s-sidecar-injector
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get","watch","list"]

@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: k8s-sidecar-injector-prod
+  namespace: kube-system
+  labels:
+    k8s-app: k8s-sidecar-injector
+    track: prod
+spec:
+  type: ClusterIP
+  # NOTE(gabe): because of how MutatingWebhookConfigurations work, we MUST set this to have a clusterip
+  # to avoid the thiccc chains of
+  # W0802 14:53:36.704545       1 admission.go:253] Failed calling webhook, failing open injector.tumblr.com: failed calling admission webhook "injector.tumblr.com": Post https://k8s-sidecar-injector-prod.sre-sys.svc:443/mutate: cannot route to service with ClusterIP "None"
+  # E0802 14:53:36.704610       1 admission.go:254] failed calling admission webhook "injector.tumblr.com": Post https://k8s-sidecar-injector-prod.sre-sys.svc:443/mutate: cannot route to service with ClusterIP "None"
+  #clusterIP: None
+  ports:
+  - name: https
+    port: 443
+    targetPort: https
+    protocol: TCP
+  - name: http-metrics
+    port: 80
+    targetPort: http-metrics
+    protocol: TCP
+  selector:
+    k8s-app: k8s-sidecar-injector
+    track: prod

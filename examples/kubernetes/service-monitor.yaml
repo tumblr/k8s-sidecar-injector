@@ -1,0 +1,23 @@
+# NOTE: this describes how prometheus finds your Service for your app
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: "k8s-sidecar-injector-prod"
+  namespace: "kube-system"
+  labels:
+    k8s-app: "k8s-sidecar-injector"
+    track: "prod"
+spec:
+  endpoints:
+  - honorLabels: true
+    port: http-metrics
+    path: "/metrics"
+    interval: 30s
+  jobLabel: k8s-app
+  namespaceSelector:
+    matchNames:
+    - kube-system
+  selector:
+    matchLabels:
+      k8s-app: "k8s-sidecar-injector"
+      track: "prod"

@@ -1,0 +1,9 @@
+---
+name: env1
+env:
+  - name: FOO_BAR
+    value: "something interesting"
+  - name: DATACENTER
+    value: "from-injection"
+  - name: ENVIRONMENT
+    value: "production"

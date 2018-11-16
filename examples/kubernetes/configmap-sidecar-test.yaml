@@ -1,0 +1,21 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sidecar-test
+  namespace: kube-system
+  labels:
+    app: k8s-sidecar-injector
+    track: test
+data:
+  test1: |
+    name: test1
+    environment:
+      - name: HELLO
+        value: world
+    containers:
+    - name: sidecar-nginx
+      image: nginx:1.12.2
+      imagePullPolicy: IfNotPresent
+      ports:
+      - containerPort: 80

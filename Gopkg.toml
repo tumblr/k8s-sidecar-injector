@@ -1,0 +1,43 @@
+
+[[constraint]]
+  name = "github.com/ghodss/yaml"
+  version = "1.0.0"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/golang/glog"
+
+[[constraint]]
+  branch = "master"
+  name = "k8s.io/api"
+
+[[constraint]]
+  branch = "master"
+  name = "k8s.io/apimachinery"
+
+[[constraint]]
+  name = "k8s.io/client-go"
+  version = "v9.0.0"
+
+[prune]
+  go-tests = true
+  unused-packages = true
+
+# Fix vendor/k8s.io/kubernetes/pkg/util/parsers/parsers.go:36:16: undefined: reference.ParseNormalizedNamed
+[[override]]
+  name = "github.com/docker/distribution"
+  #branch = "master"
+  revision = "edc3ab29cdff8694dd6feb85cfeb4b5f1b38ed9c"
+
+# Fix Solving failure: package github.com/docker/docker/api/types/reference does not exist within project github.com/docker/docker
+[[override]]
+  name = "github.com/docker/docker"
+  revision = "4f3616fb1c112e206b88cb7a9922bf49067a7756"
+
+[[constraint]]
+  name = "github.com/prometheus/client_golang"
+  branch = "master"
+
+[[constraint]]
+  name = "github.com/gorilla/handlers"
+  version = "1.4.0"
