@@ -3,6 +3,16 @@
 Uses MutatingAdmissionWebhook in Kubernetes to inject sidecars into new deployments at resource creation time
 
 
+![Travis (.org)](https://img.shields.io/travis/tumblr/k8s-sidecar-injector.svg)
+
+
+![Docker Automated build](https://img.shields.io/docker/automated/tumblr/k8s-sidecar-injector.svg)
+
+
+![Docker Build Status](https://img.shields.io/docker/build/tumblr/k8s-sidecar-injector.svg)
+
+
+
 # What is this?
 
 At Tumblr, we run some containers that have complicated sidecar setups. A kubernetes pod may run 5+ other containers, with some associated volumes and environment variables. It became clear quickly that keeping these sidecars in line would become an operational hassle; making sure every service uses the correct version of each dependency, updating global environment variable sets as configurations in our DCs change, etc. 
