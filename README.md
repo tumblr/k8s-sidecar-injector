@@ -55,3 +55,9 @@ $ ./bin/k8s-sidecar-injector --tls-port=9000 --config-directory=conf/ --tls-cert
 
 NOTE: this is not a supported method of running in production. You are highly encouraged to read [docs/deployment.md](./docs/deployment.md) to deploy this to Kubernetes in The Supported Way.
 
+
+# License
+
+[Apache 2.0](/LICENSE.txt)
+
+Copyright 2018, Tumblr, Inc.
