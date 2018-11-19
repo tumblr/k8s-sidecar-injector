@@ -2,6 +2,8 @@
 
 Uses MutatingAdmissionWebhook in Kubernetes to inject sidecars into new deployments at resource creation time
 
+![GitHub release](https://img.shields.io/github/release/tumblr/k8s-sidecar-injector.svg)
+
 ![Travis (.org)](https://img.shields.io/travis/tumblr/k8s-sidecar-injector.svg)
 
 ![Docker Automated build](https://img.shields.io/docker/automated/tumblr/k8s-sidecar-injector.svg)
