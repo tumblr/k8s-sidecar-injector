@@ -14,14 +14,54 @@ import (
 	"k8s.io/api/core/v1"
 )
 
+type injectionConfigExpectation struct {
+	name           string
+	volumeCount    int
+	envCount       int
+	containerCount int
+}
+
 var (
-	// maps a k8s ConfigMap fixture in test/fixtures/k8s/ =>
-	// InjectionConfig fixtures in test/fixtures/sidecars/
-	ExpectedInjectionConfigFixtures = map[string][]string{
-		"configmap-env1":            []string{"env1"},
-		"configmap-sidecar-test":    []string{"sidecar-test"},
-		"configmap-complex-sidecar": []string{"complex-sidecar"},
-		"configmap-multiple1":       []string{"env1", "sidecar-test"},
+	// maps a k8s ConfigMap fixture in test/fixtures/k8s/ => InjectionConfigExpectation
+	ExpectedInjectionConfigFixtures = map[string][]injectionConfigExpectation{
+		"configmap-env1": []injectionConfigExpectation{
+			injectionConfigExpectation{
+				name:           "env1",
+				volumeCount:    0,
+				envCount:       3,
+				containerCount: 0,
+			},
+		},
+		"configmap-sidecar-test": []injectionConfigExpectation{
+			injectionConfigExpectation{
+				name:           "sidecar-test",
+				volumeCount:    1,
+				envCount:       2,
+				containerCount: 2,
+			},
+		},
+		"configmap-complex-sidecar": []injectionConfigExpectation{
+			injectionConfigExpectation{
+				name:           "complex-sidecar",
+				volumeCount:    1,
+				envCount:       0,
+				containerCount: 4,
+			},
+		},
+		"configmap-multiple1": []injectionConfigExpectation{
+			injectionConfigExpectation{
+				name:           "env1",
+				volumeCount:    0,
+				envCount:       3,
+				containerCount: 0,
+			},
+			injectionConfigExpectation{
+				name:           "sidecar-test",
+				volumeCount:    1,
+				envCount:       2,
+				containerCount: 2,
+			},
+		},
 	}
 )
 
@@ -29,8 +69,8 @@ func k8sFixture(f string) string {
 	return fmt.Sprintf("test/fixtures/k8s/%s.yaml", f)
 }
 
-func injectionConfigFixture(f string) string {
-	return fmt.Sprintf("test/fixtures/sidecars/%s.yaml", f)
+func injectionConfigFixture(e injectionConfigExpectation) string {
+	return fmt.Sprintf("test/fixtures/sidecars/%s.yaml", e.name)
 }
 
 func TestLoadFromConfigMap(t *testing.T) {
@@ -57,14 +97,20 @@ func TestLoadFromConfigMap(t *testing.T) {
 		if len(ics) != len(expectedFixtures) {
 			t.Fatalf("expected %d injection configs loaded from %s, but got %d", len(expectedFixtures), fname, len(ics))
 		}
-		sort.Strings(expectedFixtures)
+
+		// make sure all the appropriate names are present
+		expectedNames := make([]string, len(expectedFixtures))
+		for i, f := range expectedFixtures {
+			expectedNames[i] = f.name
+		}
+		sort.Strings(expectedNames)
 		actualNames := []string{}
 		for _, x := range ics {
 			actualNames = append(actualNames, x.Name)
 		}
 		sort.Strings(actualNames)
-		if strings.Join(expectedFixtures, ",") != strings.Join(actualNames, ",") {
-			t.Fatalf("expected InjectionConfigs loaded with names %v but got %v", expectedFixtures, actualNames)
+		if strings.Join(expectedNames, ",") != strings.Join(actualNames, ",") {
+			t.Fatalf("expected InjectionConfigs loaded with names %v but got %v", expectedNames, actualNames)
 		}
 
 		for _, expectedICF := range expectedFixtures {
@@ -72,6 +118,15 @@ func TestLoadFromConfigMap(t *testing.T) {
 			ic, err := config.LoadInjectionConfigFromFilePath(expectedicFile)
 			if err != nil {
 				t.Fatalf("unable to load expected fixture %s: %s", expectedicFile, err.Error())
+			}
+			if len(ic.Environment) != expectedICF.envCount {
+				t.Fatalf("expected %d environment variables in %s, but found %d", expectedICF.envCount, expectedICF.name, len(ic.Environment))
+			}
+			if len(ic.Containers) != expectedICF.containerCount {
+				t.Fatalf("expected %d containers in %s, but found %d", expectedICF.containerCount, expectedICF.name, len(ic.Containers))
+			}
+			if len(ic.Volumes) != expectedICF.volumeCount {
+				t.Fatalf("expected %d volumes in %s, but found %d", expectedICF.volumeCount, expectedICF.name, len(ic.Volumes))
 			}
 			for _, actualIC := range ics {
 				if ic.Name == actualIC.Name {

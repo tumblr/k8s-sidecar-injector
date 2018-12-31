@@ -36,7 +36,7 @@ volumes:
 # is not already present (we will not replace an env var, only add them)
 # These will be inserted into each container in the pod, including any containers added via
 # injection.
-environment:
+env:
 - name: DATACENTER
   value: "dc01"
 ```
@@ -47,7 +47,7 @@ In order for the injector to know about a sidecar configuration, you need to eit
 
 1. Create a new InjectionConfiguration `yaml`
   1. Specify your `name:`. This is what you will request with `injector.tumblr.com/request=$name`
-  2. Fill in the `containers`, `volumes`, and `environment` fields with your configuration you want injected
+  2. Fill in the `containers`, `volumes`, and `env` fields with your configuration you want injected
 2. Either bake your yaml into your Docker image you run (in `--config-directory=conf/`), or configure it as a ConfigMap in your k8s cluster. See [/docs/configmaps.md](/docs/configmaps.md) for information on how to configure a ConfigMap.
 3. Deploy a pod with annotation `injector.tumblr.com/request=$name`!
 

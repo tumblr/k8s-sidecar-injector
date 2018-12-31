@@ -8,8 +8,9 @@ import (
 
 var (
 	sidecars          = "test/fixtures/sidecars"
-	cfg1              = "test/fixtures/sidecars/sidecar-test.yaml"
-	complicatedConfig = "test/fixtures/sidecars/complex-sidecar.yaml"
+	cfg1              = sidecars + "/sidecar-test.yaml"
+	complicatedConfig = sidecars + "/complex-sidecar.yaml"
+	env1              = sidecars + "/env1.yaml"
 )
 
 func TestLoadConfig(t *testing.T) {
@@ -23,6 +24,36 @@ func TestLoadConfig(t *testing.T) {
 	}
 	if len(c.Injections) != expectedNumInjectionsConfig {
 		t.Fatalf("expected %d Injections loaded but got %d", expectedNumInjectionsConfig, len(c.Injections))
+	}
+}
+
+// load a config that uses only environment variable injections
+func TestLoadEnvironmentInjectionConfig(t *testing.T) {
+	cfg := env1
+	c, err := LoadInjectionConfigFromFilePath(cfg)
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
+	expectedName := "env1"
+	expectedEnvVarCount := 3
+	expectedContainerCount := 0
+	expectedVolumeCount := 0
+	if c.Name != expectedName {
+		t.Errorf("expected %s Name loaded from %s but got %s", expectedName, cfg, c.Name)
+		t.Fail()
+	}
+	if len(c.Environment) != expectedEnvVarCount {
+		t.Errorf("expected %d EnvVars loaded from %s but got %d", expectedEnvVarCount, cfg, len(c.Environment))
+		t.Fail()
+	}
+	if len(c.Containers) != expectedContainerCount {
+		t.Errorf("expected %d Containers loaded from %s but got %d", expectedContainerCount, cfg, len(c.Containers))
+		t.Fail()
+	}
+	if len(c.Volumes) != expectedVolumeCount {
+		t.Errorf("expected %d Volumes loaded from %s but got %d", expectedVolumeCount, cfg, len(c.Volumes))
+		t.Fail()
 	}
 }
 

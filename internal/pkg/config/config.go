@@ -29,10 +29,10 @@ var (
 
 // InjectionConfig is a specific instance of a injected config, for a given annotation
 type InjectionConfig struct {
-	Name        string             `yaml:"name"`
-	Containers  []corev1.Container `yaml:"containers"`
-	Volumes     []corev1.Volume    `yaml:"volumes"`
-	Environment []corev1.EnvVar    `yaml:"env"`
+	Name        string             `json:"name"`
+	Containers  []corev1.Container `json:"containers"`
+	Volumes     []corev1.Volume    `json:"volumes"`
+	Environment []corev1.EnvVar    `json:"env"`
 }
 
 // Config is a struct indicating how a given injection should be configured

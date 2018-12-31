@@ -1,6 +1,6 @@
 ---
 name: sidecar-test
-environment:
+env:
   - name: DATACENTER
     value: foo
   - name: FROM_INJECTOR
