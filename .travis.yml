@@ -2,11 +2,15 @@ language: go
 
 go:
   - "1.x"
-  - "1.11"
-  - master
+  - "1.11.4"
 
-install:
-  - make vendor
+env:
+  - GO111MODULE=on
+
+before_install:
+  - rm go.sum
+
+install: true # skip for now, due to gomodules being annoying
 
 script:
   - make all
