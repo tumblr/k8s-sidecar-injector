@@ -227,6 +227,41 @@ func addVolumes(target, added []corev1.Volume, basePath string) (patch []patchOp
 	return patch
 }
 
+func addVolumeMounts(target []corev1.Container, addedVolumeMounts []corev1.VolumeMount) (patch []patchOperation) {
+	var value interface{}
+	for containerIndex, container := range target {
+		// for each container in the spec, determine if we want to patch with any volume mounts
+		first := len(container.VolumeMounts) == 0
+		for _, add := range addedVolumeMounts {
+			path := fmt.Sprintf("/spec/containers/%d/volumeMounts", containerIndex)
+			hasKey := false
+			// make sure we dont override any existing volume mounts; we only add, dont replace
+			for _, origVolumeMount := range container.VolumeMounts {
+				if origVolumeMount.Name == add.Name {
+					hasKey = true
+					break
+				}
+			}
+			if !hasKey {
+				// make a patch
+				value = add
+				if first {
+					first = false
+					value = []corev1.VolumeMount{add}
+				} else {
+					path = path + "/-"
+				}
+				patch = append(patch, patchOperation{
+					Op:    "add",
+					Path:  path,
+					Value: value,
+				})
+			}
+		}
+	}
+	return patch
+}
+
 // for containers, add any env vars that are not already defined in the Env list.
 // this does _not_ return patches; this is intended to be used only on containers defined
 // in the injection config, so the resources do not exist yet in the k8s api (thus no patch needed)
@@ -245,6 +280,28 @@ func mergeEnvVars(envs []corev1.EnvVar, containers []corev1.Container) []corev1.
 			}
 			if !skip {
 				c.Env = append(c.Env, newEnv)
+			}
+		}
+		mutatedContainers = append(mutatedContainers, c)
+	}
+	return mutatedContainers
+}
+
+func mergeVolumeMounts(volumeMounts []corev1.VolumeMount, containers []corev1.Container) []corev1.Container {
+	mutatedContainers := []corev1.Container{}
+	for _, c := range containers {
+		for _, newVolumeMount := range volumeMounts {
+			// check each container for each volume mount by name.
+			// if the container has a matching name, dont override!
+			skip := false
+			for _, origVolumeMount := range c.VolumeDevices {
+				if origVolumeMount.Name == newVolumeMount.Name {
+					skip = true
+					break
+				}
+			}
+			if !skip {
+				c.VolumeMounts = append(c.VolumeMounts, newVolumeMount)
 			}
 		}
 		mutatedContainers = append(mutatedContainers, c)
@@ -278,17 +335,18 @@ func updateAnnotations(target map[string]string, added map[string]string) (patch
 func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[string]string) ([]byte, error) {
 	var patch []patchOperation
 
-	// first, make sure any injected containers in our config get the EnvVars injected
+	// first, make sure any injected containers in our config get the EnvVars and VolumeMounts injected
 	// this mutates inj.Containers with our environment vars
 	mutatedInjectedContainers := mergeEnvVars(inj.Environment, inj.Containers)
+	mutatedInjectedContainers = mergeVolumeMounts(inj.VolumeMounts, mutatedInjectedContainers)
 	// next, patch containers with our injected containers
 	patch = append(patch, addContainers(pod.Spec.Containers, mutatedInjectedContainers, "/spec/containers")...)
-	// now, patch all existing containers with the env vars
+	// now, patch all existing containers with the env vars and volume mounts
 	patch = append(patch, setEnvironment(pod.Spec.Containers, inj.Environment)...)
+	patch = append(patch, addVolumeMounts(pod.Spec.Containers, inj.VolumeMounts)...)
 	// now, add volumes and set annotations
 	patch = append(patch, addVolumes(pod.Spec.Volumes, inj.Volumes, "/spec/volumes")...)
 	patch = append(patch, updateAnnotations(pod.Annotations, annotations)...)
-
 	return json.Marshal(patch)
 }
 
