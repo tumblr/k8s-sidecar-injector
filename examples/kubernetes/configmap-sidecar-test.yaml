@@ -10,12 +10,34 @@ metadata:
 data:
   test1: |
     name: test1
-    environment:
+    env:
       - name: HELLO
         value: world
+      - name: TEST
+        value: test_that
+    volumeMounts:
+    - name: test-vol
+      mountPath: /tmp/test
+    volumes:
+    - name: test-vol
+      configMap:
+        name: test-config
     containers:
     - name: sidecar-nginx
       image: nginx:1.12.2
       imagePullPolicy: IfNotPresent
       ports:
       - containerPort: 80
+      env:
+        - name: ENV_IN_SIDECAR
+          value: test-in-sidecar
+---
+# configmap to test sharing a volume between sidecar and existing container
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-config
+  namespace: default
+data:
+  test.txt: |
+    this is some test message shared between containers
