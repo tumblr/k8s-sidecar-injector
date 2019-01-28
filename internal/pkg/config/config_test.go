@@ -11,10 +11,11 @@ var (
 	cfg1              = sidecars + "/sidecar-test.yaml"
 	complicatedConfig = sidecars + "/complex-sidecar.yaml"
 	env1              = sidecars + "/env1.yaml"
+	volumeMounts      = sidecars + "/volume-mounts.yaml"
 )
 
 func TestLoadConfig(t *testing.T) {
-	expectedNumInjectionsConfig := 3
+	expectedNumInjectionsConfig := 4
 	c, err := LoadConfigDirectory(sidecars)
 	if err != nil {
 		t.Fatal(err)
@@ -100,6 +101,46 @@ func TestLoadComplexConfig(t *testing.T) {
 	}
 	if len(c.Volumes) != nExpectedVolumes {
 		t.Fatalf("expected %d Volumes loaded from %s but got %d", nExpectedVolumes, cfg, len(c.Volumes))
+	}
+}
+
+func TestLoadVolumeMountsConfig(t *testing.T) {
+	cfg := volumeMounts
+	c, err := LoadInjectionConfigFromFilePath(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedName := "volume-mounts"
+	nExpectedContainers := 2
+	nExpectedVolumes := 2
+	nExpectedEnvironmentVars := 2
+	expectedVolumeMounts := []string{"test-vol"}
+
+	if c.Name != expectedName {
+		t.Fatalf("expected %s Name loaded from %s but got %s", expectedName, cfg, c.Name)
+	}
+	if len(c.Environment) != nExpectedEnvironmentVars {
+		t.Fatalf("expected %d EnvVars loaded from %s but got %d", nExpectedEnvironmentVars, cfg, len(c.Environment))
+	}
+	if len(c.Containers) != nExpectedContainers {
+		t.Fatalf("expected %d Containers loaded from %s but got %d", nExpectedContainers, cfg, len(c.Containers))
+	}
+	if len(c.Volumes) != nExpectedVolumes {
+		t.Fatalf("expected %d Volumes loaded from %s but got %d", nExpectedVolumes, cfg, len(c.Volumes))
+	}
+	for _, expectedVolumeMount := range expectedVolumeMounts {
+		for _, container := range c.Containers {
+			volumeMountExists := false
+			for _, volumeMount := range container.VolumeMounts {
+				if volumeMount.Name == expectedVolumeMount {
+					volumeMountExists = true
+					break
+				}
+			}
+			if !volumeMountExists {
+				t.Fatalf("did not find expected VolumeMount '%s' in container '%s' loaded from %s", expectedVolumeMount, container.Name, cfg)
+			}
+		}
 	}
 }
 

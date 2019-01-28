@@ -19,6 +19,7 @@ type injectionConfigExpectation struct {
 	volumeCount    int
 	envCount       int
 	containerCount int
+	volumeMounts   []string
 }
 
 var (
@@ -30,6 +31,7 @@ var (
 				volumeCount:    0,
 				envCount:       3,
 				containerCount: 0,
+				volumeMounts:   []string{},
 			},
 		},
 		"configmap-sidecar-test": []injectionConfigExpectation{
@@ -38,6 +40,7 @@ var (
 				volumeCount:    1,
 				envCount:       2,
 				containerCount: 2,
+				volumeMounts:   []string{},
 			},
 		},
 		"configmap-complex-sidecar": []injectionConfigExpectation{
@@ -46,6 +49,7 @@ var (
 				volumeCount:    1,
 				envCount:       0,
 				containerCount: 4,
+				volumeMounts:   []string{},
 			},
 		},
 		"configmap-multiple1": []injectionConfigExpectation{
@@ -54,12 +58,23 @@ var (
 				volumeCount:    0,
 				envCount:       3,
 				containerCount: 0,
+				volumeMounts:   []string{},
 			},
 			injectionConfigExpectation{
 				name:           "sidecar-test",
 				volumeCount:    1,
 				envCount:       2,
 				containerCount: 2,
+				volumeMounts:   []string{},
+			},
+		},
+		"configmap-volume-mounts": []injectionConfigExpectation{
+			injectionConfigExpectation{
+				name:           "volume-mounts",
+				volumeCount:    2,
+				envCount:       2,
+				containerCount: 2,
+				volumeMounts:   []string{"test-vol"},
 			},
 		},
 	}
@@ -128,6 +143,22 @@ func TestLoadFromConfigMap(t *testing.T) {
 			if len(ic.Volumes) != expectedICF.volumeCount {
 				t.Fatalf("expected %d volumes in %s, but found %d", expectedICF.volumeCount, expectedICF.name, len(ic.Volumes))
 			}
+
+			for _, expectedVolumeMount := range expectedICF.volumeMounts {
+				for _, container := range ic.Containers {
+					volumeMountExists := false
+					for _, volumeMount := range container.VolumeMounts {
+						if volumeMount.Name == expectedVolumeMount {
+							volumeMountExists = true
+							break
+						}
+					}
+					if !volumeMountExists {
+						t.Fatalf("did not find expected VolumeMount '%s' in container '%s'", expectedVolumeMount, container.Name)
+					}
+				}
+			}
+
 			for _, actualIC := range ics {
 				if ic.Name == actualIC.Name {
 					if ic.String() != actualIC.String() {

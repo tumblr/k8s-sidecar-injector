@@ -45,7 +45,7 @@ type Config struct {
 
 // String returns a string representation of the config
 func (c *InjectionConfig) String() string {
-	return fmt.Sprintf("%s: %d containers, %d volumes, %d environment vars, %d volume mounts", c.Name, len(c.Containers), len(c.Volumes), len(c.Environment), len(c.VolumeMounts))
+	return fmt.Sprintf("%s: %d containers, %d volumes, %d environment vars", c.Name, len(c.Containers), len(c.Volumes), len(c.Environment))
 }
 
 // ReplaceInjectionConfigs will take a list of new InjectionConfigs, and replace the current configuration with them.
