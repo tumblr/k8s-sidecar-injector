@@ -15,11 +15,11 @@ import (
 )
 
 type injectionConfigExpectation struct {
-	name           string
-	volumeCount    int
-	envCount       int
-	containerCount int
-	volumeMounts   []string
+	name             string
+	volumeCount      int
+	envCount         int
+	containerCount   int
+	volumeMountCount int
 }
 
 var (
@@ -27,54 +27,54 @@ var (
 	ExpectedInjectionConfigFixtures = map[string][]injectionConfigExpectation{
 		"configmap-env1": []injectionConfigExpectation{
 			injectionConfigExpectation{
-				name:           "env1",
-				volumeCount:    0,
-				envCount:       3,
-				containerCount: 0,
-				volumeMounts:   []string{},
+				name:             "env1",
+				volumeCount:      0,
+				envCount:         3,
+				containerCount:   0,
+				volumeMountCount: 0,
 			},
 		},
 		"configmap-sidecar-test": []injectionConfigExpectation{
 			injectionConfigExpectation{
-				name:           "sidecar-test",
-				volumeCount:    1,
-				envCount:       2,
-				containerCount: 2,
-				volumeMounts:   []string{},
+				name:             "sidecar-test",
+				volumeCount:      1,
+				envCount:         2,
+				containerCount:   2,
+				volumeMountCount: 0,
 			},
 		},
 		"configmap-complex-sidecar": []injectionConfigExpectation{
 			injectionConfigExpectation{
-				name:           "complex-sidecar",
-				volumeCount:    1,
-				envCount:       0,
-				containerCount: 4,
-				volumeMounts:   []string{},
+				name:             "complex-sidecar",
+				volumeCount:      1,
+				envCount:         0,
+				containerCount:   4,
+				volumeMountCount: 0,
 			},
 		},
 		"configmap-multiple1": []injectionConfigExpectation{
 			injectionConfigExpectation{
-				name:           "env1",
-				volumeCount:    0,
-				envCount:       3,
-				containerCount: 0,
-				volumeMounts:   []string{},
+				name:             "env1",
+				volumeCount:      0,
+				envCount:         3,
+				containerCount:   0,
+				volumeMountCount: 0,
 			},
 			injectionConfigExpectation{
-				name:           "sidecar-test",
-				volumeCount:    1,
-				envCount:       2,
-				containerCount: 2,
-				volumeMounts:   []string{},
+				name:             "sidecar-test",
+				volumeCount:      1,
+				envCount:         2,
+				containerCount:   2,
+				volumeMountCount: 0,
 			},
 		},
 		"configmap-volume-mounts": []injectionConfigExpectation{
 			injectionConfigExpectation{
-				name:           "volume-mounts",
-				volumeCount:    2,
-				envCount:       2,
-				containerCount: 2,
-				volumeMounts:   []string{"test-vol"},
+				name:             "volume-mounts",
+				volumeCount:      2,
+				envCount:         2,
+				containerCount:   3,
+				volumeMountCount: 1,
 			},
 		},
 	}
@@ -143,22 +143,25 @@ func TestLoadFromConfigMap(t *testing.T) {
 			if len(ic.Volumes) != expectedICF.volumeCount {
 				t.Fatalf("expected %d volumes in %s, but found %d", expectedICF.volumeCount, expectedICF.name, len(ic.Volumes))
 			}
-
-			for _, expectedVolumeMount := range expectedICF.volumeMounts {
-				for _, container := range ic.Containers {
-					volumeMountExists := false
-					for _, volumeMount := range container.VolumeMounts {
-						if volumeMount.Name == expectedVolumeMount {
-							volumeMountExists = true
-							break
+			if len(ic.VolumeMounts) != expectedICF.volumeMountCount {
+				t.Fatalf("expected %d volume mounts in %s, but found %d", expectedICF.volumeMountCount, expectedICF.name, len(ic.VolumeMounts))
+			}
+			/*
+				for _, expectedVolumeMount := range expectedICF.volumeMounts {
+					for _, container := range ic.Containers {
+						volumeMountExists := false
+						for _, volumeMount := range container.VolumeMounts {
+							if volumeMount.Name == expectedVolumeMount {
+								volumeMountExists = true
+								break
+							}
+						}
+						if !volumeMountExists {
+							t.Fatalf("did not find expected VolumeMount '%s' in container '%s'", expectedVolumeMount, container.Name)
 						}
 					}
-					if !volumeMountExists {
-						t.Fatalf("did not find expected VolumeMount '%s' in container '%s'", expectedVolumeMount, container.Name)
-					}
 				}
-			}
-
+			*/
 			for _, actualIC := range ics {
 				if ic.Name == actualIC.Name {
 					if ic.String() != actualIC.String() {

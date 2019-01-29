@@ -40,6 +40,7 @@ func TestLoadEnvironmentInjectionConfig(t *testing.T) {
 	expectedEnvVarCount := 3
 	expectedContainerCount := 0
 	expectedVolumeCount := 0
+	nExpectedVolumeMounts := 0
 	if c.Name != expectedName {
 		t.Errorf("expected %s Name loaded from %s but got %s", expectedName, cfg, c.Name)
 		t.Fail()
@@ -55,6 +56,9 @@ func TestLoadEnvironmentInjectionConfig(t *testing.T) {
 	if len(c.Volumes) != expectedVolumeCount {
 		t.Errorf("expected %d Volumes loaded from %s but got %d", expectedVolumeCount, cfg, len(c.Volumes))
 		t.Fail()
+	}
+	if len(c.VolumeMounts) != nExpectedVolumeMounts {
+		t.Fatalf("expected %d VolumeMounts loaded from %s but got %d", nExpectedVolumeMounts, cfg, len(c.VolumeMounts))
 	}
 }
 
@@ -77,6 +81,9 @@ func TestLoadInjectionConfig1(t *testing.T) {
 	if len(c.Volumes) != 1 {
 		t.Fatalf("expected %d Volumes loaded from %s but got %d", 1, cfg, len(c.Volumes))
 	}
+	if len(c.VolumeMounts) != 0 {
+		t.Fatalf("expected %d VolumeMounts loaded from %s but got %d", 0, cfg, len(c.VolumeMounts))
+	}
 }
 
 // load a more complicated test config with LOTS of configuration
@@ -90,6 +97,7 @@ func TestLoadComplexConfig(t *testing.T) {
 	nExpectedContainers := 4
 	nExpectedVolumes := 1
 	nExpectedEnvironmentVars := 0
+	nExpectedVolumeMounts := 0
 	if c.Name != expectedName {
 		t.Fatalf("expected %s Name loaded from %s but got %s", expectedName, cfg, c.Name)
 	}
@@ -101,6 +109,9 @@ func TestLoadComplexConfig(t *testing.T) {
 	}
 	if len(c.Volumes) != nExpectedVolumes {
 		t.Fatalf("expected %d Volumes loaded from %s but got %d", nExpectedVolumes, cfg, len(c.Volumes))
+	}
+	if len(c.VolumeMounts) != nExpectedVolumeMounts {
+		t.Fatalf("expected %d VolumeMounts loaded from %s but got %d", nExpectedVolumeMounts, cfg, len(c.VolumeMounts))
 	}
 }
 
@@ -111,10 +122,10 @@ func TestLoadVolumeMountsConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	expectedName := "volume-mounts"
-	nExpectedContainers := 2
+	nExpectedContainers := 3
 	nExpectedVolumes := 2
 	nExpectedEnvironmentVars := 2
-	expectedVolumeMounts := []string{"test-vol"}
+	nExpectedVolumeMounts := 1
 
 	if c.Name != expectedName {
 		t.Fatalf("expected %s Name loaded from %s but got %s", expectedName, cfg, c.Name)
@@ -128,19 +139,8 @@ func TestLoadVolumeMountsConfig(t *testing.T) {
 	if len(c.Volumes) != nExpectedVolumes {
 		t.Fatalf("expected %d Volumes loaded from %s but got %d", nExpectedVolumes, cfg, len(c.Volumes))
 	}
-	for _, expectedVolumeMount := range expectedVolumeMounts {
-		for _, container := range c.Containers {
-			volumeMountExists := false
-			for _, volumeMount := range container.VolumeMounts {
-				if volumeMount.Name == expectedVolumeMount {
-					volumeMountExists = true
-					break
-				}
-			}
-			if !volumeMountExists {
-				t.Fatalf("did not find expected VolumeMount '%s' in container '%s' loaded from %s", expectedVolumeMount, container.Name, cfg)
-			}
-		}
+	if len(c.VolumeMounts) != nExpectedVolumeMounts {
+		t.Fatalf("expected %d VolumeMounts loaded from %s but got %d", nExpectedVolumeMounts, cfg, len(c.VolumeMounts))
 	}
 }
 
@@ -184,5 +184,8 @@ func TestGetInjectionConfig(t *testing.T) {
 	}
 	if len(i.Volumes) != 1 {
 		t.Fatalf("expected 1 volume, but got %d", len(i.Volumes))
+	}
+	if len(i.VolumeMounts) != 0 {
+		t.Fatalf("expected %d VolumeMounts, but got %d", 0, len(i.VolumeMounts))
 	}
 }
