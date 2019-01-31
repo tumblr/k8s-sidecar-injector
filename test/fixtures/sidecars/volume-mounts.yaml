@@ -1,5 +1,5 @@
 name: volume-mounts
-volumeMounts:
+volume-mounts:
   - name: test-vol
     mountPath: /tmp/test
 env:

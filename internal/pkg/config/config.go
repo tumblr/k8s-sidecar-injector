@@ -33,7 +33,7 @@ type InjectionConfig struct {
 	Containers   []corev1.Container   `json:"containers"`
 	Volumes      []corev1.Volume      `json:"volumes"`
 	Environment  []corev1.EnvVar      `json:"env"`
-	VolumeMounts []corev1.VolumeMount `json:"volumeMounts"`
+	VolumeMounts []corev1.VolumeMount `json:"volume-mounts"`
 }
 
 // Config is a struct indicating how a given injection should be configured

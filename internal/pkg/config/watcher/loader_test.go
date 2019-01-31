@@ -146,22 +146,6 @@ func TestLoadFromConfigMap(t *testing.T) {
 			if len(ic.VolumeMounts) != expectedICF.volumeMountCount {
 				t.Fatalf("expected %d volume mounts in %s, but found %d", expectedICF.volumeMountCount, expectedICF.name, len(ic.VolumeMounts))
 			}
-			/*
-				for _, expectedVolumeMount := range expectedICF.volumeMounts {
-					for _, container := range ic.Containers {
-						volumeMountExists := false
-						for _, volumeMount := range container.VolumeMounts {
-							if volumeMount.Name == expectedVolumeMount {
-								volumeMountExists = true
-								break
-							}
-						}
-						if !volumeMountExists {
-							t.Fatalf("did not find expected VolumeMount '%s' in container '%s'", expectedVolumeMount, container.Name)
-						}
-					}
-				}
-			*/
 			for _, actualIC := range ics {
 				if ic.Name == actualIC.Name {
 					if ic.String() != actualIC.String() {
