@@ -18,10 +18,11 @@ var (
 	env1        = "test/fixtures/k8s/env1.yaml"
 	obj3Missing = "test/fixtures/k8s/object3-missing.yaml"
 	obj4        = "test/fixtures/k8s/object4.yaml"
+	obj5        = "test/fixtures/k8s/object5.yaml"
 )
 
 func TestLoadConfig(t *testing.T) {
-	expectedNumInjectionConfigs := 3
+	expectedNumInjectionConfigs := 4
 	c, err := config.LoadConfigDirectory(sidecars)
 	if err != nil {
 		t.Error(err)
@@ -51,6 +52,7 @@ func TestLoadConfig(t *testing.T) {
 		env1:        "env1",
 		obj3Missing: "", // this one is missing any annotations :)
 		obj4:        "", // this one is already injected, so it should not get injected again
+		obj5:        "volume-mounts",
 	}
 	for f, k := range objects {
 		data, err := ioutil.ReadFile(f)

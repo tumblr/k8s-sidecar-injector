@@ -1,0 +1,40 @@
+name: volume-mounts
+volumeMounts:
+  - name: test-vol
+    mountPath: /tmp/test
+env:
+  - name: DATACENTER
+    value: foo
+  - name: FROM_INJECTOR
+    value: bar
+containers:
+- name: sidecar-add-vm
+  image: nginx:1.12.2
+  imagePullPolicy: IfNotPresent
+  env:
+    - name: DATACENTER
+      value: bf2
+  ports:
+    - containerPort: 80
+  volumeMounts:
+    - name: nginx-conf
+      mountPath: /etc/nginx
+- name: sidecar-existing-vm
+  image: foo:69
+  ports:
+    - containerPort: 420
+  volumeMounts:
+    - name: test-vol
+      mountPath: /tmp/another-dir
+- name: sidecar-first-vm  
+  image: bar:42
+  imagePullPolicy: always
+  ports:
+    - containerPort: 43    
+volumes:
+- name: nginx-conf
+  configMap:
+    name: nginx-configmap
+- name: test-vol
+  configMap:
+    name: test-config
