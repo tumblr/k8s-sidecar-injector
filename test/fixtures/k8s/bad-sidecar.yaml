@@ -1,0 +1,4 @@
+name: bad-sidecar
+namespace: "test-namespace"
+annotations:
+  "injector.unittest.com/request": "this-doesnt-exist"

@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/ghodss/yaml"
@@ -64,7 +65,7 @@ func (c *Config) ReplaceInjectionConfigs(replacementConfigs []InjectionConfig) {
 func (c *Config) HasInjectionConfig(key string) bool {
 	c.RLock()
 	defer c.RUnlock()
-	_, ok := c.Injections[key]
+	_, ok := c.Injections[strings.ToLower(key)]
 	return ok
 }
 
@@ -72,7 +73,8 @@ func (c *Config) HasInjectionConfig(key string) bool {
 func (c *Config) GetInjectionConfig(key string) (*InjectionConfig, error) {
 	c.RLock()
 	defer c.RUnlock()
-	i, ok := c.Injections[key]
+	k := strings.ToLower(key)
+	i, ok := c.Injections[k]
 	if !ok {
 		return nil, fmt.Errorf("no injection config found for annotation %s", key)
 	}

@@ -1,0 +1,4 @@
+name: ignored-namespace
+namespace: "ignore-me"
+annotations:
+  "injector.unittest.com/request": "volume-mounts"
