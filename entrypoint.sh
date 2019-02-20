@@ -2,7 +2,7 @@
 set -e
 LIFECYCLE_PORT="${LIFECYCLE_PORT:-9000}"
 TLS_PORT="${TLS_PORT:-9443}"
-CONFIG_DIR="${CONFIG_DIR:-conf/}"
+CONFIG_DIR="${CONFIG_DIR:-/conf}"
 TLS_CERT_FILE="${TLS_CERT_FILE:-/var/lib/secrets/cert.crt}"
 TLS_KEY_FILE="${TLS_KEY_FILE:-/var/lib/secrets/cert.key}"
 CONFIGMAP_LABELS="${CONFIGMAP_LABELS:-app=k8s-sidecar-injector}"
