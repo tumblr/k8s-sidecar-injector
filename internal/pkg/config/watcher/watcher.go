@@ -135,7 +135,7 @@ func mapStringStringToLabelSelector(m map[string]string) string {
 }
 
 // Get fetches all matching ConfigMaps
-func (c *K8sConfigMapWatcher) Get() (cfgs []config.InjectionConfig, err error) {
+func (c *K8sConfigMapWatcher) Get() (cfgs []*config.InjectionConfig, err error) {
 	glog.V(1).Infof("Fetching ConfigMaps...")
 	clist, err := c.client.ConfigMaps(c.Namespace).List(metav1.ListOptions{
 		LabelSelector: mapStringStringToLabelSelector(c.ConfigMapLabels),
@@ -156,8 +156,8 @@ func (c *K8sConfigMapWatcher) Get() (cfgs []config.InjectionConfig, err error) {
 }
 
 // InjectionConfigsFromConfigMap parse items in a configmap into a list of InjectionConfigs
-func InjectionConfigsFromConfigMap(cm v1.ConfigMap) ([]config.InjectionConfig, error) {
-	ics := []config.InjectionConfig{}
+func InjectionConfigsFromConfigMap(cm v1.ConfigMap) ([]*config.InjectionConfig, error) {
+	ics := []*config.InjectionConfig{}
 	for name, payload := range cm.Data {
 		glog.V(3).Infof("Parsing %s/%s:%s into InjectionConfig", cm.ObjectMeta.Namespace, cm.ObjectMeta.Name, name)
 		ic, err := config.LoadInjectionConfig(strings.NewReader(payload))
@@ -165,7 +165,7 @@ func InjectionConfigsFromConfigMap(cm v1.ConfigMap) ([]config.InjectionConfig, e
 			return nil, fmt.Errorf("error parsing ConfigMap %s item %s into injection config: %s", cm.ObjectMeta.Name, name, err.Error())
 		}
 		glog.V(2).Infof("Loaded InjectionConfig %s from ConfigMap %s:%s", ic.Name, cm.ObjectMeta.Name, name)
-		ics = append(ics, *ic)
+		ics = append(ics, ic)
 	}
 	return ics, nil
 }

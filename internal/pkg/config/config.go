@@ -40,8 +40,8 @@ type InjectionConfig struct {
 // Config is a struct indicating how a given injection should be configured
 type Config struct {
 	sync.RWMutex
-	AnnotationNamespace string                     `yaml:"annotationnamespace"`
-	Injections          map[string]InjectionConfig `yaml:"injections"`
+	AnnotationNamespace string                      `yaml:"annotationnamespace"`
+	Injections          map[string]*InjectionConfig `yaml:"injections"`
 }
 
 // String returns a string representation of the config
@@ -51,10 +51,10 @@ func (c *InjectionConfig) String() string {
 
 // ReplaceInjectionConfigs will take a list of new InjectionConfigs, and replace the current configuration with them.
 // this blocks waiting on being able to update the configs in place.
-func (c *Config) ReplaceInjectionConfigs(replacementConfigs []InjectionConfig) {
+func (c *Config) ReplaceInjectionConfigs(replacementConfigs []*InjectionConfig) {
 	c.Lock()
 	defer c.Unlock()
-	c.Injections = map[string]InjectionConfig{}
+	c.Injections = map[string]*InjectionConfig{}
 	for _, r := range replacementConfigs {
 		c.Injections[r.Name] = r
 	}
@@ -78,13 +78,13 @@ func (c *Config) GetInjectionConfig(key string) (*InjectionConfig, error) {
 	if !ok {
 		return nil, fmt.Errorf("no injection config found for annotation %s", key)
 	}
-	return &i, nil
+	return i, nil
 }
 
 // LoadConfigDirectory loads all configs in a directory and returns the Config
 func LoadConfigDirectory(path string) (*Config, error) {
 	cfg := Config{
-		Injections: map[string]InjectionConfig{},
+		Injections: map[string]*InjectionConfig{},
 	}
 	glob := filepath.Join(path, "*.yaml")
 	matches, err := filepath.Glob(glob)
@@ -97,7 +97,7 @@ func LoadConfigDirectory(path string) (*Config, error) {
 			glog.Errorf("Error reading injection config from %s: %v", p, err)
 			return nil, err
 		}
-		cfg.Injections[c.Name] = *c
+		cfg.Injections[c.Name] = c
 	}
 
 	if len(cfg.Injections) == 0 {

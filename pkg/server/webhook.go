@@ -19,13 +19,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 )
 
+const (
+	// StatusInjected is the annotation value for /status that indicates an injection was already performed on this pod
+	StatusInjected = "injected"
+)
+
 var (
 	runtimeScheme = runtime.NewScheme()
 	codecs        = serializer.NewCodecFactory(runtimeScheme)
 	deserializer  = codecs.UniversalDeserializer()
-
-	// StatusInjected is the annotation value for /status that indicates an injection was already performed on this pod
-	StatusInjected = "injected"
 
 	// (https://github.com/kubernetes/kubernetes/issues/57982)
 	defaulter = runtime.ObjectDefaulter(runtimeScheme)
@@ -383,19 +385,7 @@ func (whsvr *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.Admissi
 	injectionKey, err := whsvr.getSidecarConfigurationRequested(ignoredNamespaces, &pod.ObjectMeta)
 	if err != nil {
 		glog.Infof("Skipping mutation of %s/%s: %v", pod.Namespace, pod.Name, err)
-		var reason string
-		switch err {
-		case ErrSkipIgnoredNamespace:
-			reason = "ignored_namespace"
-		case ErrSkipAlreadyInjected:
-			reason = "already_injected"
-		case ErrMissingRequestAnnotation:
-			reason = "no_annotation"
-		case ErrRequestedSidecarNotFound:
-			reason = "missing_config"
-		default:
-			reason = "unknown_error"
-		}
+		reason := GetErrorReason(err)
 		injectionCounter.With(prometheus.Labels{"status": "skipped", "reason": reason, "requested": injectionKey}).Inc()
 		return &v1beta1.AdmissionResponse{
 			Allowed: true,
