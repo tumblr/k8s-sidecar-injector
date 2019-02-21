@@ -129,7 +129,7 @@ func main() {
 				}
 				glog.V(1).Infof("got %d updated InjectionConfigs from reconciliation", len(updatedInjectionConfigs))
 
-				newInjectionConfigs := make([]config.InjectionConfig, len(updatedInjectionConfigs)+len(cfg.Injections))
+				newInjectionConfigs := make([]*config.InjectionConfig, len(updatedInjectionConfigs)+len(cfg.Injections))
 				{
 					i := 0
 					for k := range cfg.Injections {

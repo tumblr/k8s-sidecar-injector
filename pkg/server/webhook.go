@@ -19,6 +19,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 )
 
+const (
+	// StatusInjected is the annotation value for /status that indicates an injection was already performed on this pod
+	StatusInjected = "injected"
+)
+
 var (
 	runtimeScheme = runtime.NewScheme()
 	codecs        = serializer.NewCodecFactory(runtimeScheme)
@@ -120,12 +125,12 @@ func applyDefaultsWorkaround(containers []corev1.Container, volumes []corev1.Vol
 }
 
 // Check whether the target resoured need to be mutated
-func (whsvr *WebhookServer) requiredMutation(ignoredList []string, metadata *metav1.ObjectMeta) string {
-	// skip special kubernete system namespaces
+func (whsvr *WebhookServer) getSidecarConfigurationRequested(ignoredList []string, metadata *metav1.ObjectMeta) (string, error) {
+	// skip special kubernetes system namespaces
 	for _, namespace := range ignoredList {
 		if metadata.Namespace == namespace {
-			glog.Infof("Skip mutation for %v in ignorednamespace: %v", metadata.Name, metadata.Namespace)
-			return ""
+			glog.Infof("Pod %s/%s should skip injection due to ignored namespace", metadata.Name, metadata.Namespace)
+			return "", ErrSkipIgnoredNamespace
 		}
 	}
 
@@ -134,20 +139,29 @@ func (whsvr *WebhookServer) requiredMutation(ignoredList []string, metadata *met
 		annotations = map[string]string{}
 	}
 
-	status := annotations[whsvr.Config.AnnotationNamespace+"/status"]
+	statusAnnotationKey := whsvr.Config.AnnotationNamespace + "/status"
+	requestAnnotationKey := whsvr.Config.AnnotationNamespace + "/request"
 
-	// determine whether to perform mutation based on annotation for the target resource
-	requestedInjection := ""
-	if strings.ToLower(status) != "injected" {
-		requestedInjection = strings.ToLower(annotations[whsvr.Config.AnnotationNamespace+"/request"])
-		if !whsvr.Config.HasInjectionConfig(requestedInjection) {
-			glog.Errorf("Mutation policy for %v/%v: status:%q requested injection: %s was not in configuration, skipping", metadata.Namespace, metadata.Name, status, requestedInjection)
-			return ""
-		}
+	status, ok := annotations[statusAnnotationKey]
+	if ok && strings.ToLower(status) == StatusInjected {
+		glog.Infof("Pod %s/%s annotation %s=%s indicates injection already satisfied, skipping", metadata.Namespace, metadata.Name, statusAnnotationKey, status)
+		return "", ErrSkipAlreadyInjected
 	}
 
-	glog.Infof("Mutation policy for %v/%v: status:%q injection:%s", metadata.Namespace, metadata.Name, status, requestedInjection)
-	return requestedInjection
+	// determine whether to perform mutation based on annotation for the target resource
+	requestedInjection, ok := annotations[requestAnnotationKey]
+	if !ok {
+		glog.Infof("Pod %s/%s annotation %s is missing, skipping injection", metadata.Namespace, metadata.Name, statusAnnotationKey)
+		return "", ErrMissingRequestAnnotation
+	}
+	injectionKey := strings.ToLower(requestedInjection)
+	if !whsvr.Config.HasInjectionConfig(requestedInjection) {
+		glog.Errorf("Mutation policy for pod %s/%s: requested injection %s was not in configuration, skipping", metadata.Namespace, metadata.Name, requestedInjection)
+		return requestedInjection, ErrRequestedSidecarNotFound
+	}
+
+	glog.Infof("Pod %s/%s annotation %s=%s requesting sidecar config %s", metadata.Namespace, metadata.Name, requestAnnotationKey, requestedInjection, injectionKey)
+	return injectionKey, nil
 }
 
 func setEnvironment(target []corev1.Container, addedEnv []corev1.EnvVar) (patch []patchOperation) {
@@ -364,14 +378,15 @@ func (whsvr *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.Admissi
 		}
 	}
 
-	glog.Infof("AdmissionReview for Kind=%v, Namespace=%v Name=%v (%v) UID=%v patchOperation=%v UserInfo=%v",
+	glog.Infof("AdmissionReview for Kind=%s, Namespace=%s Name=%s (%s) UID=%s patchOperation=%s UserInfo=%s",
 		req.Kind, req.Namespace, req.Name, pod.Name, req.UID, req.Operation, req.UserInfo)
 
 	// determine whether to perform mutation
-	injectionKey := whsvr.requiredMutation(ignoredNamespaces, &pod.ObjectMeta)
-	if injectionKey == "" {
-		glog.Infof("Skipping mutation for %s/%s because no injection request in annotations", pod.Namespace, pod.Name)
-		injectionCounter.With(prometheus.Labels{"status": "skipped", "reason": "no_annotation", "requested": injectionKey}).Inc()
+	injectionKey, err := whsvr.getSidecarConfigurationRequested(ignoredNamespaces, &pod.ObjectMeta)
+	if err != nil {
+		glog.Infof("Skipping mutation of %s/%s: %v", pod.Namespace, pod.Name, err)
+		reason := GetErrorReason(err)
+		injectionCounter.With(prometheus.Labels{"status": "skipped", "reason": reason, "requested": injectionKey}).Inc()
 		return &v1beta1.AdmissionResponse{
 			Allowed: true,
 		}
@@ -379,7 +394,7 @@ func (whsvr *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.Admissi
 
 	injectionConfig, err := whsvr.Config.GetInjectionConfig(injectionKey)
 	if err != nil {
-		glog.Errorf("Error getting injection config for %s, so we will fail open: %s", injectionConfig, err.Error())
+		glog.Errorf("Error getting injection config %s, permitting launch of pod with no sidecar injected: %s", injectionConfig, err.Error())
 		// dont prevent pods from launching! just return allowed
 		injectionCounter.With(prometheus.Labels{"status": "skipped", "reason": "missing_config", "requested": injectionKey}).Inc()
 		return &v1beta1.AdmissionResponse{
@@ -389,7 +404,7 @@ func (whsvr *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.Admissi
 
 	// Workaround: https://github.com/kubernetes/kubernetes/issues/57982
 	applyDefaultsWorkaround(injectionConfig.Containers, injectionConfig.Volumes)
-	annotations := map[string]string{config.InjectionStatusAnnotation: "injected"}
+	annotations := map[string]string{config.InjectionStatusAnnotation: StatusInjected}
 	patchBytes, err := createPatch(&pod, injectionConfig, annotations)
 	if err != nil {
 		injectionCounter.With(prometheus.Labels{"status": "error", "reason": "patching_error", "requested": injectionKey}).Inc()

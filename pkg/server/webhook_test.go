@@ -12,14 +12,26 @@ import (
 )
 
 var (
-	sidecars    = "test/fixtures/sidecars"
-	obj1        = "test/fixtures/k8s/object1.yaml"
-	obj2        = "test/fixtures/k8s/object2.yaml"
-	env1        = "test/fixtures/k8s/env1.yaml"
-	obj3Missing = "test/fixtures/k8s/object3-missing.yaml"
-	obj4        = "test/fixtures/k8s/object4.yaml"
-	obj5        = "test/fixtures/k8s/object5.yaml"
+	sidecars = "test/fixtures/sidecars"
+
+	// all these configs are deserialized into metav1.ObjectMeta structs
+	obj1             = "test/fixtures/k8s/object1.yaml"
+	obj2             = "test/fixtures/k8s/object2.yaml"
+	env1             = "test/fixtures/k8s/env1.yaml"
+	obj3Missing      = "test/fixtures/k8s/object3-missing.yaml"
+	obj4             = "test/fixtures/k8s/object4.yaml"
+	obj5             = "test/fixtures/k8s/object5.yaml"
+	ignoredNamespace = "test/fixtures/k8s/ignored-namespace-pod.yaml"
+	badSidecar       = "test/fixtures/k8s/bad-sidecar.yaml"
+
+	testIgnoredNamespaces = []string{"ignore-me"}
 )
+
+type expectedSidecarConfiguration struct {
+	configuration   string
+	expectedSidecar string
+	expectedError   error
+}
 
 func TestLoadConfig(t *testing.T) {
 	expectedNumInjectionConfigs := 4
@@ -46,16 +58,19 @@ func TestLoadConfig(t *testing.T) {
 	}
 
 	// load some objects that are k8s metadata objects
-	objects := map[string]string{
-		obj1:        "sidecar-test",
-		obj2:        "complex-sidecar",
-		env1:        "env1",
-		obj3Missing: "", // this one is missing any annotations :)
-		obj4:        "", // this one is already injected, so it should not get injected again
-		obj5:        "volume-mounts",
+	tests := []expectedSidecarConfiguration{
+		{configuration: obj1, expectedSidecar: "sidecar-test"},
+		{configuration: obj2, expectedSidecar: "complex-sidecar"},
+		{configuration: env1, expectedSidecar: "env1"},
+		{configuration: obj3Missing, expectedSidecar: "", expectedError: ErrMissingRequestAnnotation}, // this one is missing any annotations :)
+		{configuration: obj4, expectedSidecar: "", expectedError: ErrSkipAlreadyInjected},             // this one is already injected, so it should not get injected again
+		{configuration: obj5, expectedSidecar: "volume-mounts"},
+		{configuration: ignoredNamespace, expectedSidecar: "", expectedError: ErrSkipIgnoredNamespace},
+		{configuration: badSidecar, expectedSidecar: "this-doesnt-exist", expectedError: ErrRequestedSidecarNotFound},
 	}
-	for f, k := range objects {
-		data, err := ioutil.ReadFile(f)
+
+	for _, test := range tests {
+		data, err := ioutil.ReadFile(test.configuration)
 		if err != nil {
 			t.Errorf("unable to load object metadata yaml: %v", err)
 			t.Fail()
@@ -66,9 +81,13 @@ func TestLoadConfig(t *testing.T) {
 			t.Errorf("unable to unmarshal object metadata yaml: %v", err)
 			t.Fail()
 		}
-		key := s.requiredMutation([]string{}, obj)
-		if key != k {
-			t.Errorf("%s: expected required mutation key to be %v but was %v instead", f, k, key)
+		key, err := s.getSidecarConfigurationRequested(testIgnoredNamespaces, obj)
+		if err != test.expectedError {
+			t.Errorf("%s: error %v did not match %v", test.configuration, err, test.expectedError)
+			t.Fail()
+		}
+		if key != test.expectedSidecar {
+			t.Errorf("%s: expected sidecar to be %v but was %v instead", test.configuration, test.expectedSidecar, key)
 			t.Fail()
 		}
 	}
