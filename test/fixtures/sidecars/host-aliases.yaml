@@ -1,6 +1,12 @@
 name: volume-mounts
 hostAliases:
-  # TODO: add
+  - ip: 1.2.3.4
+    hostnames:
+      - some.domain.com
+      - some.other-domain.com
+  - ip: 4.3.2.1
+    hostnames:
+      - another.domain.com
 env:
   - name: DATACENTER
     value: foo
