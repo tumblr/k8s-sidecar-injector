@@ -21,6 +21,7 @@ var (
 	obj3Missing      = "test/fixtures/k8s/object3-missing.yaml"
 	obj4             = "test/fixtures/k8s/object4.yaml"
 	obj5             = "test/fixtures/k8s/object5.yaml"
+	obj6             = "test/fixtures/k8s/object6.yaml"
 	ignoredNamespace = "test/fixtures/k8s/ignored-namespace-pod.yaml"
 	badSidecar       = "test/fixtures/k8s/bad-sidecar.yaml"
 
@@ -34,7 +35,7 @@ type expectedSidecarConfiguration struct {
 }
 
 func TestLoadConfig(t *testing.T) {
-	expectedNumInjectionConfigs := 4
+	expectedNumInjectionConfigs := 5
 	c, err := config.LoadConfigDirectory(sidecars)
 	if err != nil {
 		t.Error(err)
@@ -65,7 +66,7 @@ func TestLoadConfig(t *testing.T) {
 		{configuration: obj3Missing, expectedSidecar: "", expectedError: ErrMissingRequestAnnotation}, // this one is missing any annotations :)
 		{configuration: obj4, expectedSidecar: "", expectedError: ErrSkipAlreadyInjected},             // this one is already injected, so it should not get injected again
 		{configuration: obj5, expectedSidecar: "volume-mounts"},
-		{configuration: obj5, expectedSidecar: "host-aliases"},
+		{configuration: obj6, expectedSidecar: "host-aliases"},
 		{configuration: ignoredNamespace, expectedSidecar: "", expectedError: ErrSkipIgnoredNamespace},
 		{configuration: badSidecar, expectedSidecar: "this-doesnt-exist", expectedError: ErrRequestedSidecarNotFound},
 	}

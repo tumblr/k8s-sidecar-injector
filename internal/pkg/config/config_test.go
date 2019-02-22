@@ -12,11 +12,11 @@ var (
 	complicatedConfig = sidecars + "/complex-sidecar.yaml"
 	env1              = sidecars + "/env1.yaml"
 	volumeMounts      = sidecars + "/volume-mounts.yaml"
-	hostAliases       = sidecars + "host-aliases.yaml"
+	hostAliases       = sidecars + "/host-aliases.yaml"
 )
 
 func TestLoadConfig(t *testing.T) {
-	expectedNumInjectionsConfig := 4
+	expectedNumInjectionsConfig := 5
 	c, err := LoadConfigDirectory(sidecars)
 	if err != nil {
 		t.Fatal(err)

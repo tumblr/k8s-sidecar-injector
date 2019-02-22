@@ -1,4 +1,4 @@
-name: volume-mounts
+name: host-aliases
 hostAliases:
   - ip: 1.2.3.4
     hostnames:
