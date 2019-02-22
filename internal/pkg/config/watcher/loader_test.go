@@ -20,6 +20,7 @@ type injectionConfigExpectation struct {
 	envCount         int
 	containerCount   int
 	volumeMountCount int
+	hostAliasCount   int
 }
 
 var (
@@ -32,6 +33,7 @@ var (
 				envCount:         3,
 				containerCount:   0,
 				volumeMountCount: 0,
+				hostAliasCount:   0,
 			},
 		},
 		"configmap-sidecar-test": []injectionConfigExpectation{
@@ -41,6 +43,7 @@ var (
 				envCount:         2,
 				containerCount:   2,
 				volumeMountCount: 0,
+				hostAliasCount:   0,
 			},
 		},
 		"configmap-complex-sidecar": []injectionConfigExpectation{
@@ -50,6 +53,7 @@ var (
 				envCount:         0,
 				containerCount:   4,
 				volumeMountCount: 0,
+				hostAliasCount:   0,
 			},
 		},
 		"configmap-multiple1": []injectionConfigExpectation{
@@ -59,6 +63,7 @@ var (
 				envCount:         3,
 				containerCount:   0,
 				volumeMountCount: 0,
+				hostAliasCount:   0,
 			},
 			injectionConfigExpectation{
 				name:             "sidecar-test",
@@ -66,6 +71,7 @@ var (
 				envCount:         2,
 				containerCount:   2,
 				volumeMountCount: 0,
+				hostAliasCount:   0,
 			},
 		},
 		"configmap-volume-mounts": []injectionConfigExpectation{
@@ -75,6 +81,17 @@ var (
 				envCount:         2,
 				containerCount:   3,
 				volumeMountCount: 1,
+				hostAliasCount:   0,
+			},
+		},
+		"configmap-host-aliases": []injectionConfigExpectation{
+			injectionConfigExpectation{
+				name:             "host-aliases",
+				volumeCount:      0,
+				envCount:         2,
+				containerCount:   1,
+				volumeMountCount: 0,
+				hostAliasCount:   2,
 			},
 		},
 	}
@@ -145,6 +162,9 @@ func TestLoadFromConfigMap(t *testing.T) {
 			}
 			if len(ic.VolumeMounts) != expectedICF.volumeMountCount {
 				t.Fatalf("expected %d volume mounts in %s, but found %d", expectedICF.volumeMountCount, expectedICF.name, len(ic.VolumeMounts))
+			}
+			if len(ic.HostAliases) != expectedICF.hostAliasCount {
+				t.Fatalf("expected %d host aliases in %s, but found %d", expectedICF.hostAliasCount, expectedICF.name, len(ic.HostAliases))
 			}
 			for _, actualIC := range ics {
 				if ic.Name == actualIC.Name {

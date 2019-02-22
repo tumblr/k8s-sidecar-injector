@@ -168,7 +168,7 @@ func TestLoadHostAliasesConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 	expectedName := "host-aliases"
-	nExpectedContainers := 2
+	nExpectedContainers := 1
 	nExpectedVolumes := 0
 	nExpectedEnvironmentVars := 2
 	nExpectedVolumeMounts := 0

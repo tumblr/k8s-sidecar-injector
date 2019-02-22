@@ -1,0 +1,17 @@
+name: volume-mounts
+hostAliases:
+  # TODO: add
+env:
+  - name: DATACENTER
+    value: foo
+  - name: FROM_INJECTOR
+    value: bar
+containers:
+- name: sidecar-add-vm
+  image: nginx:1.12.2
+  imagePullPolicy: IfNotPresent
+  env:
+    - name: DATACENTER
+      value: bf2
+  ports:
+    - containerPort: 80
