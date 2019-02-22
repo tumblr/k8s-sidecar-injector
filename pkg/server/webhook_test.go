@@ -65,6 +65,7 @@ func TestLoadConfig(t *testing.T) {
 		{configuration: obj3Missing, expectedSidecar: "", expectedError: ErrMissingRequestAnnotation}, // this one is missing any annotations :)
 		{configuration: obj4, expectedSidecar: "", expectedError: ErrSkipAlreadyInjected},             // this one is already injected, so it should not get injected again
 		{configuration: obj5, expectedSidecar: "volume-mounts"},
+		{configuration: obj5, expectedSidecar: "host-aliases"},
 		{configuration: ignoredNamespace, expectedSidecar: "", expectedError: ErrSkipIgnoredNamespace},
 		{configuration: badSidecar, expectedSidecar: "this-doesnt-exist", expectedError: ErrRequestedSidecarNotFound},
 	}
