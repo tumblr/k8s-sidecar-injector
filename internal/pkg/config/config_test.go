@@ -172,7 +172,7 @@ func TestLoadHostAliasesConfig(t *testing.T) {
 	nExpectedVolumes := 0
 	nExpectedEnvironmentVars := 2
 	nExpectedVolumeMounts := 0
-	nExpectedHostAliases := 2
+	nExpectedHostAliases := 6
 
 	if c.Name != expectedName {
 		t.Fatalf("expected %s Name loaded from %s but got %s", expectedName, cfg, c.Name)

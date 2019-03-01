@@ -91,7 +91,7 @@ var (
 				envCount:         2,
 				containerCount:   1,
 				volumeMountCount: 0,
-				hostAliasCount:   2,
+				hostAliasCount:   6,
 			},
 		},
 	}

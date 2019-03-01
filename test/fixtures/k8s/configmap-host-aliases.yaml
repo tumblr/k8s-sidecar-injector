@@ -3,7 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: test-host-aliases
-  namespace: default
+  namespace: kube-system
 data:
   test-tumblr1: |
     name: host-aliases
@@ -15,6 +15,15 @@ data:
       - ip: 4.3.2.1
         hostnames:
           - another.domain.com
+      - ip: 4.3.2.1
+        hostnames:
+          - yetanother.domain.com
+      - ip: 2.3.4.5
+        hostnames:
+          - another.domain.com
+      - ip: 4.3.2.1
+      - ip: 4.3.2.1
+        hostnames:
     env:
       - name: DATACENTER
         value: foo
