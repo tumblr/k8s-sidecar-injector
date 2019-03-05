@@ -6,18 +6,127 @@ import (
 	_ "github.com/tumblr/k8s-sidecar-injector/internal/pkg/testing"
 )
 
+// config struct for testing: where to find the file and what we expect to find in it
+type configExpectation struct {
+	name                       string
+	path                       string
+	expectedEnvVarCount        int
+	expectedContainerCount     int
+	expectedVolumeCount        int
+	expectedVolumeMountCount   int
+	expectedHostAliasCount     int
+	expectedInitContainerCount int
+}
+
 var (
-	sidecars          = "test/fixtures/sidecars"
-	cfg1              = sidecars + "/sidecar-test.yaml"
-	complicatedConfig = sidecars + "/complex-sidecar.yaml"
-	env1              = sidecars + "/env1.yaml"
-	volumeMounts      = sidecars + "/volume-mounts.yaml"
-	hostAliases       = sidecars + "/host-aliases.yaml"
+	// location of the fixture sidecar files
+	fixtureSidecarsDir = "test/fixtures/sidecars"
+
+	// test files and expectations
+	testConfigs = map[string]configExpectation{
+		"sidecar-test": configExpectation{
+			name:                       "sidecar-test",
+			path:                       fixtureSidecarsDir + "/sidecar-test.yaml",
+			expectedEnvVarCount:        2,
+			expectedContainerCount:     2,
+			expectedVolumeCount:        1,
+			expectedVolumeMountCount:   0,
+			expectedHostAliasCount:     0,
+			expectedInitContainerCount: 0,
+		},
+		"complex-sidecar": configExpectation{
+			name:                       "complex-sidecar",
+			path:                       fixtureSidecarsDir + "/complex-sidecar.yaml",
+			expectedEnvVarCount:        0,
+			expectedContainerCount:     4,
+			expectedVolumeCount:        1,
+			expectedVolumeMountCount:   0,
+			expectedHostAliasCount:     0,
+			expectedInitContainerCount: 0,
+		},
+		"env1": configExpectation{
+			name:                       "env1",
+			path:                       fixtureSidecarsDir + "/env1.yaml",
+			expectedEnvVarCount:        3,
+			expectedContainerCount:     0,
+			expectedVolumeCount:        0,
+			expectedVolumeMountCount:   0,
+			expectedHostAliasCount:     0,
+			expectedInitContainerCount: 0,
+		},
+		"volume-mounts": configExpectation{
+			name:                       "volume-mounts",
+			path:                       fixtureSidecarsDir + "/volume-mounts.yaml",
+			expectedEnvVarCount:        2,
+			expectedContainerCount:     3,
+			expectedVolumeCount:        2,
+			expectedVolumeMountCount:   1,
+			expectedHostAliasCount:     0,
+			expectedInitContainerCount: 0,
+		},
+		"host-aliases": configExpectation{
+			name:                       "host-aliases",
+			path:                       fixtureSidecarsDir + "/host-aliases.yaml",
+			expectedEnvVarCount:        2,
+			expectedContainerCount:     1,
+			expectedVolumeCount:        0,
+			expectedVolumeMountCount:   0,
+			expectedHostAliasCount:     6,
+			expectedInitContainerCount: 0,
+		},
+		"init-containers": configExpectation{
+			name:                       "init-containers",
+			path:                       fixtureSidecarsDir + "/init-containers.yaml",
+			expectedEnvVarCount:        0,
+			expectedContainerCount:     2,
+			expectedVolumeCount:        0,
+			expectedVolumeMountCount:   0,
+			expectedHostAliasCount:     0,
+			expectedInitContainerCount: 1,
+		},
+	}
 )
 
+// TestConfigs: load configs from filepath and check if we load what we expected
+func TestConfigs(t *testing.T) {
+	for _, testConfig := range testConfigs {
+		c, err := LoadInjectionConfigFromFilePath(testConfig.path)
+		if err != nil {
+			t.Error(err)
+			t.Fail()
+		}
+		if c.Name != testConfig.name {
+			t.Errorf("expected %s Name loaded from %s but got %s", testConfig.name, testConfig.path, c.Name)
+			t.Fail()
+		}
+		if len(c.Environment) != testConfig.expectedEnvVarCount {
+			t.Errorf("expected %d EnvVars loaded from %s but got %d", testConfig.expectedEnvVarCount, testConfig.path, len(c.Environment))
+			t.Fail()
+		}
+		if len(c.Containers) != testConfig.expectedContainerCount {
+			t.Errorf("expected %d Containers loaded from %s but got %d", testConfig.expectedContainerCount, testConfig.path, len(c.Containers))
+			t.Fail()
+		}
+		if len(c.Volumes) != testConfig.expectedVolumeCount {
+			t.Errorf("expected %d Volumes loaded from %s but got %d", testConfig.expectedVolumeCount, testConfig.path, len(c.Volumes))
+			t.Fail()
+		}
+		if len(c.VolumeMounts) != testConfig.expectedVolumeMountCount {
+			t.Fatalf("expected %d VolumeMounts loaded from %s but got %d", testConfig.expectedVolumeMountCount, testConfig.path, len(c.VolumeMounts))
+		}
+		if len(c.HostAliases) != testConfig.expectedHostAliasCount {
+			t.Fatalf("expected %d HostAliases loaded from %s but got %d", testConfig.expectedHostAliasCount, testConfig.path, len(c.HostAliases))
+		}
+		if len(c.InitContainers) != testConfig.expectedInitContainerCount {
+			t.Fatalf("expected %d InitContainers loaded from %s but got %d", testConfig.expectedInitContainerCount, testConfig.path, len(c.InitContainers))
+		}
+	}
+}
+
+// TestLoadConfig: Check if we get all the configs
 func TestLoadConfig(t *testing.T) {
-	expectedNumInjectionsConfig := 5
-	c, err := LoadConfigDirectory(sidecars)
+	expectedNumInjectionsConfig := len(testConfigs)
+	c, err := LoadConfigDirectory(fixtureSidecarsDir)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -29,216 +138,35 @@ func TestLoadConfig(t *testing.T) {
 	}
 }
 
-// load a config that uses only environment variable injections
-func TestLoadEnvironmentInjectionConfig(t *testing.T) {
-	cfg := env1
-	c, err := LoadInjectionConfigFromFilePath(cfg)
-	if err != nil {
-		t.Error(err)
-		t.Fail()
-	}
-	expectedName := "env1"
-	expectedEnvVarCount := 3
-	expectedContainerCount := 0
-	expectedVolumeCount := 0
-	nExpectedVolumeMounts := 0
-	nExpectedHostAliases := 0
-	if c.Name != expectedName {
-		t.Errorf("expected %s Name loaded from %s but got %s", expectedName, cfg, c.Name)
-		t.Fail()
-	}
-	if len(c.Environment) != expectedEnvVarCount {
-		t.Errorf("expected %d EnvVars loaded from %s but got %d", expectedEnvVarCount, cfg, len(c.Environment))
-		t.Fail()
-	}
-	if len(c.Containers) != expectedContainerCount {
-		t.Errorf("expected %d Containers loaded from %s but got %d", expectedContainerCount, cfg, len(c.Containers))
-		t.Fail()
-	}
-	if len(c.Volumes) != expectedVolumeCount {
-		t.Errorf("expected %d Volumes loaded from %s but got %d", expectedVolumeCount, cfg, len(c.Volumes))
-		t.Fail()
-	}
-	if len(c.VolumeMounts) != nExpectedVolumeMounts {
-		t.Fatalf("expected %d VolumeMounts loaded from %s but got %d", nExpectedVolumeMounts, cfg, len(c.VolumeMounts))
-	}
-	if len(c.HostAliases) != nExpectedHostAliases {
-		t.Fatalf("expected %d HostAliases loaded from %s but got %d", nExpectedHostAliases, cfg, len(c.HostAliases))
-	}
-}
-
-func TestLoadInjectionConfig1(t *testing.T) {
-	cfg := cfg1
-	c, err := LoadInjectionConfigFromFilePath(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if c.Name != "sidecar-test" {
-		t.Fatalf("expected %s Name loaded from %s but got %s", "sidecar-test", cfg, c.Name)
-	}
-	expectedEnvVars := 2
-	if len(c.Environment) != expectedEnvVars {
-		t.Fatalf("expected %d EnvVars loaded from %s but got %d", expectedEnvVars, cfg, len(c.Environment))
-	}
-	if len(c.Containers) != 2 {
-		t.Fatalf("expected %d Containers loaded from %s but got %d", 2, cfg, len(c.Containers))
-	}
-	if len(c.Volumes) != 1 {
-		t.Fatalf("expected %d Volumes loaded from %s but got %d", 1, cfg, len(c.Volumes))
-	}
-	if len(c.VolumeMounts) != 0 {
-		t.Fatalf("expected %d VolumeMounts loaded from %s but got %d", 0, cfg, len(c.VolumeMounts))
-	}
-	if len(c.HostAliases) != 0 {
-		t.Fatalf("expected %d HostAliases loaded from %s but got %d", 0, cfg, len(c.HostAliases))
-	}
-}
-
-// load a more complicated test config with LOTS of configuration
-func TestLoadComplexConfig(t *testing.T) {
-	cfg := complicatedConfig
-	c, err := LoadInjectionConfigFromFilePath(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	expectedName := "complex-sidecar"
-	nExpectedContainers := 4
-	nExpectedVolumes := 1
-	nExpectedEnvironmentVars := 0
-	nExpectedVolumeMounts := 0
-	nExpectedHostAliases := 0
-
-	if c.Name != expectedName {
-		t.Fatalf("expected %s Name loaded from %s but got %s", expectedName, cfg, c.Name)
-	}
-	if len(c.Environment) != nExpectedEnvironmentVars {
-		t.Fatalf("expected %d EnvVars loaded from %s but got %d", nExpectedEnvironmentVars, cfg, len(c.Environment))
-	}
-	if len(c.Containers) != nExpectedContainers {
-		t.Fatalf("expected %d Containers loaded from %s but got %d", nExpectedContainers, cfg, len(c.Containers))
-	}
-	if len(c.Volumes) != nExpectedVolumes {
-		t.Fatalf("expected %d Volumes loaded from %s but got %d", nExpectedVolumes, cfg, len(c.Volumes))
-	}
-	if len(c.VolumeMounts) != nExpectedVolumeMounts {
-		t.Fatalf("expected %d VolumeMounts loaded from %s but got %d", nExpectedVolumeMounts, cfg, len(c.VolumeMounts))
-	}
-	if len(c.HostAliases) != nExpectedHostAliases {
-		t.Fatalf("expected %d HostAliases loaded from %s but got %d", nExpectedHostAliases, cfg, len(c.HostAliases))
-	}
-}
-
-func TestLoadVolumeMountsConfig(t *testing.T) {
-	cfg := volumeMounts
-	c, err := LoadInjectionConfigFromFilePath(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	expectedName := "volume-mounts"
-	nExpectedContainers := 3
-	nExpectedVolumes := 2
-	nExpectedEnvironmentVars := 2
-	nExpectedVolumeMounts := 1
-	nExpectedHostAliases := 0
-
-	if c.Name != expectedName {
-		t.Fatalf("expected %s Name loaded from %s but got %s", expectedName, cfg, c.Name)
-	}
-	if len(c.Environment) != nExpectedEnvironmentVars {
-		t.Fatalf("expected %d EnvVars loaded from %s but got %d", nExpectedEnvironmentVars, cfg, len(c.Environment))
-	}
-	if len(c.Containers) != nExpectedContainers {
-		t.Fatalf("expected %d Containers loaded from %s but got %d", nExpectedContainers, cfg, len(c.Containers))
-	}
-	if len(c.Volumes) != nExpectedVolumes {
-		t.Fatalf("expected %d Volumes loaded from %s but got %d", nExpectedVolumes, cfg, len(c.Volumes))
-	}
-	if len(c.VolumeMounts) != nExpectedVolumeMounts {
-		t.Fatalf("expected %d VolumeMounts loaded from %s but got %d", nExpectedVolumeMounts, cfg, len(c.VolumeMounts))
-	}
-	if len(c.HostAliases) != nExpectedHostAliases {
-		t.Fatalf("expected %d HostAliases loaded from %s but got %d", nExpectedHostAliases, cfg, len(c.HostAliases))
-	}
-}
-
-func TestLoadHostAliasesConfig(t *testing.T) {
-	cfg := hostAliases
-	c, err := LoadInjectionConfigFromFilePath(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-	expectedName := "host-aliases"
-	nExpectedContainers := 1
-	nExpectedVolumes := 0
-	nExpectedEnvironmentVars := 2
-	nExpectedVolumeMounts := 0
-	nExpectedHostAliases := 6
-
-	if c.Name != expectedName {
-		t.Fatalf("expected %s Name loaded from %s but got %s", expectedName, cfg, c.Name)
-	}
-	if len(c.Environment) != nExpectedEnvironmentVars {
-		t.Fatalf("expected %d EnvVars loaded from %s but got %d", nExpectedEnvironmentVars, cfg, len(c.Environment))
-	}
-	if len(c.Containers) != nExpectedContainers {
-		t.Fatalf("expected %d Containers loaded from %s but got %d", nExpectedContainers, cfg, len(c.Containers))
-	}
-	if len(c.Volumes) != nExpectedVolumes {
-		t.Fatalf("expected %d Volumes loaded from %s but got %d", nExpectedVolumes, cfg, len(c.Volumes))
-	}
-	if len(c.VolumeMounts) != nExpectedVolumeMounts {
-		t.Fatalf("expected %d VolumeMounts loaded from %s but got %d", nExpectedVolumeMounts, cfg, len(c.VolumeMounts))
-	}
-	if len(c.HostAliases) != nExpectedHostAliases {
-		t.Fatalf("expected %d HostAliases loaded from %s but got %d", nExpectedHostAliases, cfg, len(c.HostAliases))
-	}
-}
-
-func TestHasInjectionConfig(t *testing.T) {
-	c, err := LoadConfigDirectory(sidecars)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	for _, k := range []string{"sidecar-test", "complex-sidecar"} {
-		if !c.HasInjectionConfig(k) {
-			t.Fatalf("%s should have included %s but did not", cfg1, k)
-		}
-	}
-
-	// make sure it says when things arent present too
-	for _, k := range []string{"missing-1", "yolo420blazeit"} {
-		if c.HasInjectionConfig(k) {
-			t.Fatalf("%s should NOT have included %s but did", cfg1, k)
-		}
-	}
-
-}
-
+// TestFetInjectionConfig: Check if we can properly load a config by name and see if we read the correct values from it
 func TestGetInjectionConfig(t *testing.T) {
-	c, err := LoadConfigDirectory(sidecars)
+	cfg := testConfigs["sidecar-test"]
+	c, err := LoadConfigDirectory(fixtureSidecarsDir)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	i, err := c.GetInjectionConfig("sidecar-test")
+	i, err := c.GetInjectionConfig(cfg.name)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if len(i.Environment) != 2 {
-		t.Fatalf("expected 2 envvars, but got %d", len(i.Environment))
+	if len(i.Environment) != cfg.expectedEnvVarCount {
+		t.Fatalf("expected %d envvars, but got %d", cfg.expectedEnvVarCount, len(i.Environment))
 	}
-	if len(i.Containers) != 2 {
-		t.Fatalf("expected 2 container, but got %d", len(i.Containers))
+	if len(i.Containers) != cfg.expectedContainerCount {
+		t.Fatalf("expected %d container, but got %d", cfg.expectedContainerCount, len(i.Containers))
 	}
-	if len(i.Volumes) != 1 {
-		t.Fatalf("expected 1 volume, but got %d", len(i.Volumes))
+	if len(i.Volumes) != cfg.expectedVolumeCount {
+		t.Fatalf("expected %d volume, but got %d", cfg.expectedVolumeCount, len(i.Volumes))
 	}
-	if len(i.VolumeMounts) != 0 {
-		t.Fatalf("expected %d VolumeMounts, but got %d", 0, len(i.VolumeMounts))
+	if len(i.VolumeMounts) != cfg.expectedVolumeMountCount {
+		t.Fatalf("expected %d VolumeMounts, but got %d", cfg.expectedVolumeMountCount, len(i.VolumeMounts))
 	}
-	if len(i.HostAliases) != 0 {
-		t.Fatalf("expected %d HostAliases, but got %d", 0, len(i.HostAliases))
+	if len(i.HostAliases) != cfg.expectedHostAliasCount {
+		t.Fatalf("expected %d HostAliases, but got %d", cfg.expectedHostAliasCount, len(i.HostAliases))
+	}
+	if len(i.InitContainers) != cfg.expectedInitContainerCount {
+		t.Fatalf("expected %d InitContainers, but got %d", cfg.expectedInitContainerCount, len(i.InitContainers))
 	}
 }
