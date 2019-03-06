@@ -52,6 +52,10 @@ env:
 - name: DATACENTER
   value: "dc01"
 
+# all volumeMounts defined here will be added to containers, if the .name attribute
+# does not already exist in the list of volumeMounts, i.e. no replacement will be done.
+# They will be added to each container, including the ones added via injection.
+# This behaviour is the same for environment variables.
 volumeMounts:
   - name: some-config
     mountPath: /etc/some-config
