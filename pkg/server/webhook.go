@@ -308,7 +308,7 @@ func mergeVolumeMounts(volumeMounts []corev1.VolumeMount, containers []corev1.Co
 			// check each container for each volume mount by name.
 			// if the container has a matching name, dont override!
 			skip := false
-			for _, origVolumeMount := range c.VolumeDevices {
+			for _, origVolumeMount := range c.VolumeMounts {
 				if origVolumeMount.Name == newVolumeMount.Name {
 					skip = true
 					break
