@@ -12,10 +12,11 @@ var (
 	complicatedConfig = sidecars + "/complex-sidecar.yaml"
 	env1              = sidecars + "/env1.yaml"
 	volumeMounts      = sidecars + "/volume-mounts.yaml"
+	initSidecar       = sidecars + "/init-sidecar.yaml"
 )
 
 func TestLoadConfig(t *testing.T) {
-	expectedNumInjectionsConfig := 4
+	expectedNumInjectionsConfig := 5
 	c, err := LoadConfigDirectory(sidecars)
 	if err != nil {
 		t.Fatal(err)
@@ -144,13 +145,47 @@ func TestLoadVolumeMountsConfig(t *testing.T) {
 	}
 }
 
+func TestLoadInitSidecarConfig(t *testing.T) {
+	cfg := volumeMounts
+	c, err := LoadInjectionConfigFromFilePath(initSidecar)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedName := "init-sidecar"
+	nExpectedContainers := 0
+	nExpectedVolumes := 0
+	nExpectedEnvironmentVars := 0
+	nExpectedVolumeMounts := 0
+	nExpectedInitContainers := 1
+
+	if c.Name != expectedName {
+		t.Fatalf("expected %s Name loaded from %s but got %s", expectedName, cfg, c.Name)
+	}
+	if len(c.Environment) != nExpectedEnvironmentVars {
+		t.Fatalf("expected %d EnvVars loaded from %s but got %d", nExpectedEnvironmentVars, cfg, len(c.Environment))
+	}
+	if len(c.Containers) != nExpectedContainers {
+		t.Fatalf("expected %d Containers loaded from %s but got %d", nExpectedContainers, cfg, len(c.Containers))
+	}
+	if len(c.Volumes) != nExpectedVolumes {
+		t.Fatalf("expected %d Volumes loaded from %s but got %d", nExpectedVolumes, cfg, len(c.Volumes))
+	}
+	if len(c.VolumeMounts) != nExpectedVolumeMounts {
+		t.Fatalf("expected %d VolumeMounts loaded from %s but got %d", nExpectedVolumeMounts, cfg, len(c.VolumeMounts))
+	}
+
+	if len(c.InitContainers) != nExpectedInitContainers {
+		t.Fatalf("expected %d InitContainers loaded from %s but got %d", nExpectedInitContainers, cfg, len(c.InitContainers))
+	}
+}
+
 func TestHasInjectionConfig(t *testing.T) {
 	c, err := LoadConfigDirectory(sidecars)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	for _, k := range []string{"sidecar-test", "complex-sidecar"} {
+	for _, k := range []string{"sidecar-test", "complex-sidecar", "init-sidecar"} {
 		if !c.HasInjectionConfig(k) {
 			t.Fatalf("%s should have included %s but did not", cfg1, k)
 		}

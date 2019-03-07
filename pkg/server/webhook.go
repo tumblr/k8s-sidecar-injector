@@ -325,19 +325,19 @@ func mergeVolumeMounts(volumeMounts []corev1.VolumeMount, containers []corev1.Co
 
 func updateAnnotations(target map[string]string, added map[string]string) (patch []patchOperation) {
 	for key, value := range added {
+		keyEscaped := strings.Replace(key, "/", "~1", -1)
+
 		if target == nil || target[key] == "" {
 			target = map[string]string{}
 			patch = append(patch, patchOperation{
-				Op:   "add",
-				Path: "/metadata/annotations",
-				Value: map[string]string{
-					key: value,
-				},
+				Op:    "add",
+				Path:  "/metadata/annotations/" + keyEscaped,
+				Value: value,
 			})
 		} else {
 			patch = append(patch, patchOperation{
 				Op:    "replace",
-				Path:  "/metadata/annotations/" + key,
+				Path:  "/metadata/annotations/" + keyEscaped,
 				Value: value,
 			})
 		}
@@ -353,8 +353,11 @@ func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[s
 	// this mutates inj.Containers with our environment vars
 	mutatedInjectedContainers := mergeEnvVars(inj.Environment, inj.Containers)
 	mutatedInjectedContainers = mergeVolumeMounts(inj.VolumeMounts, mutatedInjectedContainers)
+
 	// next, patch containers with our injected containers
 	patch = append(patch, addContainers(pod.Spec.Containers, mutatedInjectedContainers, "/spec/containers")...)
+	// next, patch initContainers with our injected initContainers
+	patch = append(patch, addContainers(pod.Spec.InitContainers, inj.InitContainers, "/spec/initContainers")...)
 	// now, patch all existing containers with the env vars and volume mounts
 	patch = append(patch, setEnvironment(pod.Spec.Containers, inj.Environment)...)
 	patch = append(patch, addVolumeMounts(pod.Spec.Containers, inj.VolumeMounts)...)
@@ -404,7 +407,9 @@ func (whsvr *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.Admissi
 
 	// Workaround: https://github.com/kubernetes/kubernetes/issues/57982
 	applyDefaultsWorkaround(injectionConfig.Containers, injectionConfig.Volumes)
-	annotations := map[string]string{config.InjectionStatusAnnotation: StatusInjected}
+
+	annotations := map[string]string{}
+	annotations[config.InjectionStatusAnnotation] = StatusInjected
 	patchBytes, err := createPatch(&pod, injectionConfig, annotations)
 	if err != nil {
 		injectionCounter.With(prometheus.Labels{"status": "error", "reason": "patching_error", "requested": injectionKey}).Inc()

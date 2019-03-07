@@ -1,0 +1,18 @@
+---
+name: init-sidecar
+initContainers:
+  - name: foo
+    image: some/container:1.2.3
+    command: ["entrypoint.sh"]
+    livenessProbe:
+      httpGet:
+        path: /
+        port: 420
+      initialDelaySeconds: 3
+      periodSeconds: 10
+    resources:
+      requests:
+        cpu: "0.5"
+        memory: "1Gi"
+      limits:
+        cpu: "1.0"
