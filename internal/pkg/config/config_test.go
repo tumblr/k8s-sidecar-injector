@@ -12,10 +12,11 @@ var (
 	complicatedConfig = sidecars + "/complex-sidecar.yaml"
 	env1              = sidecars + "/env1.yaml"
 	volumeMounts      = sidecars + "/volume-mounts.yaml"
+	hostAliases       = sidecars + "/host-aliases.yaml"
 )
 
 func TestLoadConfig(t *testing.T) {
-	expectedNumInjectionsConfig := 4
+	expectedNumInjectionsConfig := 5
 	c, err := LoadConfigDirectory(sidecars)
 	if err != nil {
 		t.Fatal(err)
@@ -41,6 +42,7 @@ func TestLoadEnvironmentInjectionConfig(t *testing.T) {
 	expectedContainerCount := 0
 	expectedVolumeCount := 0
 	nExpectedVolumeMounts := 0
+	nExpectedHostAliases := 0
 	if c.Name != expectedName {
 		t.Errorf("expected %s Name loaded from %s but got %s", expectedName, cfg, c.Name)
 		t.Fail()
@@ -59,6 +61,9 @@ func TestLoadEnvironmentInjectionConfig(t *testing.T) {
 	}
 	if len(c.VolumeMounts) != nExpectedVolumeMounts {
 		t.Fatalf("expected %d VolumeMounts loaded from %s but got %d", nExpectedVolumeMounts, cfg, len(c.VolumeMounts))
+	}
+	if len(c.HostAliases) != nExpectedHostAliases {
+		t.Fatalf("expected %d HostAliases loaded from %s but got %d", nExpectedHostAliases, cfg, len(c.HostAliases))
 	}
 }
 
@@ -84,6 +89,9 @@ func TestLoadInjectionConfig1(t *testing.T) {
 	if len(c.VolumeMounts) != 0 {
 		t.Fatalf("expected %d VolumeMounts loaded from %s but got %d", 0, cfg, len(c.VolumeMounts))
 	}
+	if len(c.HostAliases) != 0 {
+		t.Fatalf("expected %d HostAliases loaded from %s but got %d", 0, cfg, len(c.HostAliases))
+	}
 }
 
 // load a more complicated test config with LOTS of configuration
@@ -98,6 +106,8 @@ func TestLoadComplexConfig(t *testing.T) {
 	nExpectedVolumes := 1
 	nExpectedEnvironmentVars := 0
 	nExpectedVolumeMounts := 0
+	nExpectedHostAliases := 0
+
 	if c.Name != expectedName {
 		t.Fatalf("expected %s Name loaded from %s but got %s", expectedName, cfg, c.Name)
 	}
@@ -112,6 +122,9 @@ func TestLoadComplexConfig(t *testing.T) {
 	}
 	if len(c.VolumeMounts) != nExpectedVolumeMounts {
 		t.Fatalf("expected %d VolumeMounts loaded from %s but got %d", nExpectedVolumeMounts, cfg, len(c.VolumeMounts))
+	}
+	if len(c.HostAliases) != nExpectedHostAliases {
+		t.Fatalf("expected %d HostAliases loaded from %s but got %d", nExpectedHostAliases, cfg, len(c.HostAliases))
 	}
 }
 
@@ -126,6 +139,7 @@ func TestLoadVolumeMountsConfig(t *testing.T) {
 	nExpectedVolumes := 2
 	nExpectedEnvironmentVars := 2
 	nExpectedVolumeMounts := 1
+	nExpectedHostAliases := 0
 
 	if c.Name != expectedName {
 		t.Fatalf("expected %s Name loaded from %s but got %s", expectedName, cfg, c.Name)
@@ -141,6 +155,42 @@ func TestLoadVolumeMountsConfig(t *testing.T) {
 	}
 	if len(c.VolumeMounts) != nExpectedVolumeMounts {
 		t.Fatalf("expected %d VolumeMounts loaded from %s but got %d", nExpectedVolumeMounts, cfg, len(c.VolumeMounts))
+	}
+	if len(c.HostAliases) != nExpectedHostAliases {
+		t.Fatalf("expected %d HostAliases loaded from %s but got %d", nExpectedHostAliases, cfg, len(c.HostAliases))
+	}
+}
+
+func TestLoadHostAliasesConfig(t *testing.T) {
+	cfg := hostAliases
+	c, err := LoadInjectionConfigFromFilePath(cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedName := "host-aliases"
+	nExpectedContainers := 1
+	nExpectedVolumes := 0
+	nExpectedEnvironmentVars := 2
+	nExpectedVolumeMounts := 0
+	nExpectedHostAliases := 6
+
+	if c.Name != expectedName {
+		t.Fatalf("expected %s Name loaded from %s but got %s", expectedName, cfg, c.Name)
+	}
+	if len(c.Environment) != nExpectedEnvironmentVars {
+		t.Fatalf("expected %d EnvVars loaded from %s but got %d", nExpectedEnvironmentVars, cfg, len(c.Environment))
+	}
+	if len(c.Containers) != nExpectedContainers {
+		t.Fatalf("expected %d Containers loaded from %s but got %d", nExpectedContainers, cfg, len(c.Containers))
+	}
+	if len(c.Volumes) != nExpectedVolumes {
+		t.Fatalf("expected %d Volumes loaded from %s but got %d", nExpectedVolumes, cfg, len(c.Volumes))
+	}
+	if len(c.VolumeMounts) != nExpectedVolumeMounts {
+		t.Fatalf("expected %d VolumeMounts loaded from %s but got %d", nExpectedVolumeMounts, cfg, len(c.VolumeMounts))
+	}
+	if len(c.HostAliases) != nExpectedHostAliases {
+		t.Fatalf("expected %d HostAliases loaded from %s but got %d", nExpectedHostAliases, cfg, len(c.HostAliases))
 	}
 }
 
@@ -187,5 +237,8 @@ func TestGetInjectionConfig(t *testing.T) {
 	}
 	if len(i.VolumeMounts) != 0 {
 		t.Fatalf("expected %d VolumeMounts, but got %d", 0, len(i.VolumeMounts))
+	}
+	if len(i.HostAliases) != 0 {
+		t.Fatalf("expected %d HostAliases, but got %d", 0, len(i.HostAliases))
 	}
 }

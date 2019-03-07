@@ -1,0 +1,4 @@
+name: object6
+namespace: unittest
+annotations:
+  "injector.unittest.com/request": "host-aliases"

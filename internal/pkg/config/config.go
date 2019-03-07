@@ -35,6 +35,7 @@ type InjectionConfig struct {
 	Volumes      []corev1.Volume      `json:"volumes"`
 	Environment  []corev1.EnvVar      `json:"env"`
 	VolumeMounts []corev1.VolumeMount `json:"volumeMounts"`
+	HostAliases  []corev1.HostAlias   `json:"hostAliases"`
 }
 
 // Config is a struct indicating how a given injection should be configured
@@ -46,7 +47,7 @@ type Config struct {
 
 // String returns a string representation of the config
 func (c *InjectionConfig) String() string {
-	return fmt.Sprintf("%s: %d containers, %d volumes, %d environment vars, %d volume mounts", c.Name, len(c.Containers), len(c.Volumes), len(c.Environment), len(c.VolumeMounts))
+	return fmt.Sprintf("%s: %d containers, %d volumes, %d environment vars, %d volume mounts, %d host aliases", c.Name, len(c.Containers), len(c.Volumes), len(c.Environment), len(c.VolumeMounts), len(c.HostAliases))
 }
 
 // ReplaceInjectionConfigs will take a list of new InjectionConfigs, and replace the current configuration with them.

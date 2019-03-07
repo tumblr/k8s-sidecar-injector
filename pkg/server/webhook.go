@@ -276,6 +276,27 @@ func addVolumeMounts(target []corev1.Container, addedVolumeMounts []corev1.Volum
 	return patch
 }
 
+func addHostAliases(target, added []corev1.HostAlias, basePath string) (patch []patchOperation) {
+	first := len(target) == 0
+	var value interface{}
+	for _, add := range added {
+		value = add
+		path := basePath
+		if first {
+			first = false
+			value = []corev1.HostAlias{add}
+		} else {
+			path = path + "/-"
+		}
+		patch = append(patch, patchOperation{
+			Op:    "add",
+			Path:  path,
+			Value: value,
+		})
+	}
+	return patch
+}
+
 // for containers, add any env vars that are not already defined in the Env list.
 // this does _not_ return patches; this is intended to be used only on containers defined
 // in the injection config, so the resources do not exist yet in the k8s api (thus no patch needed)
@@ -359,6 +380,7 @@ func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[s
 	patch = append(patch, setEnvironment(pod.Spec.Containers, inj.Environment)...)
 	patch = append(patch, addVolumeMounts(pod.Spec.Containers, inj.VolumeMounts)...)
 	// now, add volumes and set annotations
+	patch = append(patch, addHostAliases(pod.Spec.HostAliases, inj.HostAliases, "/spec/hostAliases")...)
 	patch = append(patch, addVolumes(pod.Spec.Volumes, inj.Volumes, "/spec/volumes")...)
 	patch = append(patch, updateAnnotations(pod.Annotations, annotations)...)
 	return json.Marshal(patch)

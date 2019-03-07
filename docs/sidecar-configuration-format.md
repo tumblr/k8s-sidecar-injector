@@ -31,14 +31,34 @@ volumes:
 - name: nginx-conf
   configMap:
     name: nginx-configmap
+- name: some-config
+  configMap:
+    name: some-configmap
+
+# hostAliases are not being merged, only added, as they only add entries to /etc/hosts in the containers.
+# Duplicate entries won't throw an error.
+# hostAliases are used for the whole pod.
+hostAliases:
+  - ip: 1.2.3.4
+    hostnames:
+      - somehost.example.com
+      - anotherhost.example.com
 
 # all environment variables defined here will be added to containers _only_ if the .Name
 # is not already present (we will not replace an env var, only add them)
 # These will be inserted into each container in the pod, including any containers added via
-# injection.
+# injection. The same applies to volumeMounts.
 env:
 - name: DATACENTER
   value: "dc01"
+
+# all volumeMounts defined here will be added to containers, if the .name attribute
+# does not already exist in the list of volumeMounts, i.e. no replacement will be done.
+# They will be added to each container, including the ones added via injection.
+# This behaviour is the same for environment variables.
+volumeMounts:
+  - name: some-config
+    mountPath: /etc/some-config
 ```
 
 ## Configuring new sidecars
@@ -47,8 +67,6 @@ In order for the injector to know about a sidecar configuration, you need to eit
 
 1. Create a new InjectionConfiguration `yaml`
   1. Specify your `name:`. This is what you will request with `injector.tumblr.com/request=$name`
-  2. Fill in the `containers`, `volumes`, and `env` fields with your configuration you want injected
+  2. Fill in the `containers`, `volumes`, `volumeMounts`, `hostAliases` and `env` fields with your configuration you want injected
 2. Either bake your yaml into your Docker image you run (in `--config-directory=conf/`), or configure it as a ConfigMap in your k8s cluster. See [/docs/configmaps.md](/docs/configmaps.md) for information on how to configure a ConfigMap.
 3. Deploy a pod with annotation `injector.tumblr.com/request=$name`!
-
-
