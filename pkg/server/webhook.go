@@ -220,6 +220,27 @@ func addContainers(target, added []corev1.Container, basePath string) (patch []p
 	return patch
 }
 
+func addInitContainers(target, added []corev1.Container, basePath string) (patch []patchOperation) {
+	first := len(target) == 0
+	var value interface{}
+	for _, add := range added {
+		value = add
+		path := basePath
+		if first {
+			first = false
+			value = []corev1.Container{add}
+		} else {
+			path = path + "/-"
+		}
+		patch = append(patch, patchOperation{
+			Op:    "add",
+			Path:  path,
+			Value: value,
+		})
+	}
+	return patch
+}
+
 func addVolumes(target, added []corev1.Volume, basePath string) (patch []patchOperation) {
 	first := len(target) == 0
 	var value interface{}
@@ -379,9 +400,11 @@ func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[s
 	// now, patch all existing containers with the env vars and volume mounts
 	patch = append(patch, setEnvironment(pod.Spec.Containers, inj.Environment)...)
 	patch = append(patch, addVolumeMounts(pod.Spec.Containers, inj.VolumeMounts)...)
-	// now, add volumes and set annotations
+	// now, add initContainers, hostAliases and volumes
+	patch = append(patch, addContainers(pod.Spec.InitContainers, inj.InitContainers, "/spec/initContainers")...)
 	patch = append(patch, addHostAliases(pod.Spec.HostAliases, inj.HostAliases, "/spec/hostAliases")...)
 	patch = append(patch, addVolumes(pod.Spec.Volumes, inj.Volumes, "/spec/volumes")...)
+	// last but not least, set annotations
 	patch = append(patch, updateAnnotations(pod.Annotations, annotations)...)
 	return json.Marshal(patch)
 }

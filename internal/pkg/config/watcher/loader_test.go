@@ -11,16 +11,17 @@ import (
 	"github.com/tumblr/k8s-sidecar-injector/internal/pkg/config"
 	_ "github.com/tumblr/k8s-sidecar-injector/internal/pkg/testing"
 	"gopkg.in/yaml.v2"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 )
 
 type injectionConfigExpectation struct {
-	name             string
-	volumeCount      int
-	envCount         int
-	containerCount   int
-	volumeMountCount int
-	hostAliasCount   int
+	name               string
+	volumeCount        int
+	envCount           int
+	containerCount     int
+	volumeMountCount   int
+	hostAliasCount     int
+	initContainerCount int
 }
 
 var (
@@ -28,70 +29,88 @@ var (
 	ExpectedInjectionConfigFixtures = map[string][]injectionConfigExpectation{
 		"configmap-env1": []injectionConfigExpectation{
 			injectionConfigExpectation{
-				name:             "env1",
-				volumeCount:      0,
-				envCount:         3,
-				containerCount:   0,
-				volumeMountCount: 0,
-				hostAliasCount:   0,
+				name:               "env1",
+				volumeCount:        0,
+				envCount:           3,
+				containerCount:     0,
+				volumeMountCount:   0,
+				hostAliasCount:     0,
+				initContainerCount: 0,
 			},
 		},
 		"configmap-sidecar-test": []injectionConfigExpectation{
 			injectionConfigExpectation{
-				name:             "sidecar-test",
-				volumeCount:      1,
-				envCount:         2,
-				containerCount:   2,
-				volumeMountCount: 0,
-				hostAliasCount:   0,
+				name:               "sidecar-test",
+				volumeCount:        1,
+				envCount:           2,
+				containerCount:     2,
+				volumeMountCount:   0,
+				hostAliasCount:     0,
+				initContainerCount: 0,
 			},
 		},
 		"configmap-complex-sidecar": []injectionConfigExpectation{
 			injectionConfigExpectation{
-				name:             "complex-sidecar",
-				volumeCount:      1,
-				envCount:         0,
-				containerCount:   4,
-				volumeMountCount: 0,
-				hostAliasCount:   0,
+				name:               "complex-sidecar",
+				volumeCount:        1,
+				envCount:           0,
+				containerCount:     4,
+				volumeMountCount:   0,
+				hostAliasCount:     0,
+				initContainerCount: 0,
 			},
 		},
 		"configmap-multiple1": []injectionConfigExpectation{
 			injectionConfigExpectation{
-				name:             "env1",
-				volumeCount:      0,
-				envCount:         3,
-				containerCount:   0,
-				volumeMountCount: 0,
-				hostAliasCount:   0,
+				name:               "env1",
+				volumeCount:        0,
+				envCount:           3,
+				containerCount:     0,
+				volumeMountCount:   0,
+				hostAliasCount:     0,
+				initContainerCount: 0,
 			},
 			injectionConfigExpectation{
-				name:             "sidecar-test",
-				volumeCount:      1,
-				envCount:         2,
-				containerCount:   2,
-				volumeMountCount: 0,
-				hostAliasCount:   0,
+				name:               "sidecar-test",
+				volumeCount:        1,
+				envCount:           2,
+				containerCount:     2,
+				volumeMountCount:   0,
+				hostAliasCount:     0,
+				initContainerCount: 0,
 			},
 		},
 		"configmap-volume-mounts": []injectionConfigExpectation{
 			injectionConfigExpectation{
-				name:             "volume-mounts",
-				volumeCount:      2,
-				envCount:         2,
-				containerCount:   3,
-				volumeMountCount: 1,
-				hostAliasCount:   0,
+				name:               "volume-mounts",
+				volumeCount:        2,
+				envCount:           2,
+				containerCount:     3,
+				volumeMountCount:   1,
+				hostAliasCount:     0,
+				initContainerCount: 0,
 			},
 		},
 		"configmap-host-aliases": []injectionConfigExpectation{
 			injectionConfigExpectation{
-				name:             "host-aliases",
-				volumeCount:      0,
-				envCount:         2,
-				containerCount:   1,
-				volumeMountCount: 0,
-				hostAliasCount:   6,
+				name:               "host-aliases",
+				volumeCount:        0,
+				envCount:           2,
+				containerCount:     1,
+				volumeMountCount:   0,
+				hostAliasCount:     6,
+				initContainerCount: 0,
+			},
+		},
+		"configmap-init-containers": []injectionConfigExpectation{
+			injectionConfigExpectation{
+				name:               "init-containers",
+				volumeCount:        0,
+				envCount:           0,
+				containerCount:     2,
+				volumeMountCount:   0,
+				hostAliasCount:     0,
+				initContainerCount: 1,
 			},
 		},
 	}
@@ -165,6 +184,9 @@ func TestLoadFromConfigMap(t *testing.T) {
 			}
 			if len(ic.HostAliases) != expectedICF.hostAliasCount {
 				t.Fatalf("expected %d host aliases in %s, but found %d", expectedICF.hostAliasCount, expectedICF.name, len(ic.HostAliases))
+			}
+			if len(ic.InitContainers) != expectedICF.initContainerCount {
+				t.Fatalf("expected %d init containers in %s, but found %d", expectedICF.initContainerCount, expectedICF.name, len(ic.InitContainers))
 			}
 			for _, actualIC := range ics {
 				if ic.Name == actualIC.Name {

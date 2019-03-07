@@ -61,6 +61,7 @@ volumeMounts:
     mountPath: /etc/some-config
 
 # initContainers will be added, no replacement of existing initContainers with the same names will be done
+# this works exactly the same way like adding normal containers does: if you have a conflicting name, the server will return an error
 initContainers:
   - name: some-initcontainer
     image: init:1.12.2
