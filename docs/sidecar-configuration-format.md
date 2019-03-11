@@ -59,6 +59,14 @@ env:
 volumeMounts:
   - name: some-config
     mountPath: /etc/some-config
+
+# initContainers will be added, no replacement of existing initContainers with the same names will be done
+# this works exactly the same way like adding normal containers does: if you have a conflicting name,
+# the server will return an error
+initContainers:
+  - name: some-initcontainer
+    image: init:1.12.2
+    imagePullPolicy: IfNotPresent
 ```
 
 ## Configuring new sidecars
@@ -67,6 +75,6 @@ In order for the injector to know about a sidecar configuration, you need to eit
 
 1. Create a new InjectionConfiguration `yaml`
   1. Specify your `name:`. This is what you will request with `injector.tumblr.com/request=$name`
-  2. Fill in the `containers`, `volumes`, `volumeMounts`, `hostAliases` and `env` fields with your configuration you want injected
+  2. Fill in the `containers`, `volumes`, `volumeMounts`, `hostAliases`, `initContainers` and `env` fields with your configuration you want injected
 2. Either bake your yaml into your Docker image you run (in `--config-directory=conf/`), or configure it as a ConfigMap in your k8s cluster. See [/docs/configmaps.md](/docs/configmaps.md) for information on how to configure a ConfigMap.
 3. Deploy a pod with annotation `injector.tumblr.com/request=$name`!

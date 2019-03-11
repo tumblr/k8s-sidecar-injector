@@ -220,6 +220,27 @@ func addContainers(target, added []corev1.Container, basePath string) (patch []p
 	return patch
 }
 
+func addInitContainers(target, added []corev1.Container, basePath string) (patch []patchOperation) {
+	first := len(target) == 0
+	var value interface{}
+	for _, add := range added {
+		value = add
+		path := basePath
+		if first {
+			first = false
+			value = []corev1.Container{add}
+		} else {
+			path = path + "/-"
+		}
+		patch = append(patch, patchOperation{
+			Op:    "add",
+			Path:  path,
+			Value: value,
+		})
+	}
+	return patch
+}
+
 func addVolumes(target, added []corev1.Volume, basePath string) (patch []patchOperation) {
 	first := len(target) == 0
 	var value interface{}
@@ -346,19 +367,19 @@ func mergeVolumeMounts(volumeMounts []corev1.VolumeMount, containers []corev1.Co
 
 func updateAnnotations(target map[string]string, added map[string]string) (patch []patchOperation) {
 	for key, value := range added {
+		keyEscaped := strings.Replace(key, "/", "~1", -1)
+
 		if target == nil || target[key] == "" {
 			target = map[string]string{}
 			patch = append(patch, patchOperation{
-				Op:   "add",
-				Path: "/metadata/annotations",
-				Value: map[string]string{
-					key: value,
-				},
+				Op:    "add",
+				Path:  "/metadata/annotations/" + keyEscaped,
+				Value: value,
 			})
 		} else {
 			patch = append(patch, patchOperation{
 				Op:    "replace",
-				Path:  "/metadata/annotations/" + key,
+				Path:  "/metadata/annotations/" + keyEscaped,
 				Value: value,
 			})
 		}
@@ -374,14 +395,20 @@ func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[s
 	// this mutates inj.Containers with our environment vars
 	mutatedInjectedContainers := mergeEnvVars(inj.Environment, inj.Containers)
 	mutatedInjectedContainers = mergeVolumeMounts(inj.VolumeMounts, mutatedInjectedContainers)
+
 	// next, patch containers with our injected containers
 	patch = append(patch, addContainers(pod.Spec.Containers, mutatedInjectedContainers, "/spec/containers")...)
+
 	// now, patch all existing containers with the env vars and volume mounts
 	patch = append(patch, setEnvironment(pod.Spec.Containers, inj.Environment)...)
 	patch = append(patch, addVolumeMounts(pod.Spec.Containers, inj.VolumeMounts)...)
-	// now, add volumes and set annotations
+
+	// now, add initContainers, hostAliases and volumes
+	patch = append(patch, addContainers(pod.Spec.InitContainers, inj.InitContainers, "/spec/initContainers")...)
 	patch = append(patch, addHostAliases(pod.Spec.HostAliases, inj.HostAliases, "/spec/hostAliases")...)
 	patch = append(patch, addVolumes(pod.Spec.Volumes, inj.Volumes, "/spec/volumes")...)
+
+	// last but not least, set annotations
 	patch = append(patch, updateAnnotations(pod.Annotations, annotations)...)
 	return json.Marshal(patch)
 }
@@ -426,7 +453,8 @@ func (whsvr *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.Admissi
 
 	// Workaround: https://github.com/kubernetes/kubernetes/issues/57982
 	applyDefaultsWorkaround(injectionConfig.Containers, injectionConfig.Volumes)
-	annotations := map[string]string{config.InjectionStatusAnnotation: StatusInjected}
+	annotations := map[string]string{}
+	annotations[config.InjectionStatusAnnotation] = StatusInjected
 	patchBytes, err := createPatch(&pod, injectionConfig, annotations)
 	if err != nil {
 		injectionCounter.With(prometheus.Labels{"status": "error", "reason": "patching_error", "requested": injectionKey}).Inc()

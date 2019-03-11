@@ -1,0 +1,21 @@
+name: init-containers
+initContainers:
+  - name: init-container-1
+    image: foo:bar1
+    imagePullPolicy: Always
+    command:
+      - "bash"
+      - "-c"
+      - >
+        echo "sleep 20" &&
+        sleep 20
+containers:
+- name: sidecar-add-vm
+  image: nginx:1.12.2
+  imagePullPolicy: IfNotPresent
+  ports:
+    - containerPort: 80
+- name: sidecar-existing-vm
+  image: foo:69
+  ports:
+    - containerPort: 420
