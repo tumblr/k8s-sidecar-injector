@@ -59,7 +59,7 @@ var (
 		prometheus.HistogramOpts{
 			Name:    "http_request_duration_seconds",
 			Help:    "A histogram of latencies for requests.",
-			Buckets: []float64{.1, .25, .5, 1, 2.5, 5, 10},
+			Buckets: []float64{.001, .01, .05, .1, .5, 1, 5},
 		},
 		[]string{"handler", "method"},
 	)
