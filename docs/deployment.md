@@ -9,7 +9,7 @@ Example Kubernetes manifests are provided in [/examples/kubernetes](/examples/ku
 ```
 kubectl create secret generic k8s-sidecar-injector-bf2-production --from-file=examples/tls/us-east-1/PRODUCTION/sidecar-injector.crt --from-file=examples/tls/us-east-1/PRODUCTION/sidecar-injector.key --namespace=kube-system
 ```
-5. Create ConfigMaps (or sidecar config files on disk somewhere) so the injector has some sidecars to inject :) [/docs/ckubectl create secret generic k8s-sidecar-injector-bf2-production --from-file=examples/tls/us-east4/NPE/sidecar-injector.crt --from-file=examples/tls/us-east4/NPE/sidecar-injector.key --namespace=kube-systemonfigmaps.md](/docs/configmaps.md)
+5. Create ConfigMaps (or sidecar config files on disk somewhere) so the injector has some sidecars to inject :) [/docs/configmaps.md](/docs/configmaps.md)
 
 Once you hack the example Kubernetes manifests to work for your deployment, deploy them to your cluster. The list of manifests you should deploy are below:
 
