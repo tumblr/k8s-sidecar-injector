@@ -7,7 +7,7 @@ Example Kubernetes manifests are provided in [/examples/kubernetes](/examples/ku
 3. Specify whatever flags you want in the deployment.yaml
 4. Create a kubernetes secret from the certificates that you generated as a part of [/docs/tls.md](/docs/tls.md).
 ```
-kubectl create secret generic k8s-sidecar-injector-bf2-production --from-file=examples/tls/us-east-1/PRODUCTION/sidecar-injector.crt --from-file=examples/tls/us-east-1/PRODUCTION/sidecar-injector.key --namespace=kube-system
+kubectl create secret generic k8s-sidecar-injector --from-file=examples/tls/${DEPLOYMENT}/${CLUSTER}/sidecar-injector.crt --from-file=examples/tls/${DEPLOYMENT}/${CLUSTER}/sidecar-injector.key --namespace=kube-system
 ```
 5. Create ConfigMaps (or sidecar config files on disk somewhere) so the injector has some sidecars to inject :) [/docs/configmaps.md](/docs/configmaps.md)
 
