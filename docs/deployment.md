@@ -5,7 +5,11 @@ Example Kubernetes manifests are provided in [/examples/kubernetes](/examples/ku
 1. Generate TLS certs [/docs/tls.md](/docs/tls.md) and update [/examples/kubernetes/mutating-webhook-configuration.yaml](/examples/kubernetes/mutating-webhook-configuration.yaml) with the `caBundle`
 2. Update [/examples/kubernetes/deployment.yaml](/examples/kubernetes/deployment.yaml) with the appropriate version you want to deploy
 3. Specify whatever flags you want in the deployment.yaml
-4. Create ConfigMaps (or sidecar config files on disk somewhere) so the injector has some sidecars to inject :) [/docs/configmaps.md](/docs/configmaps.md)
+4. Create a kubernetes secret from the certificates that you generated as a part of [/docs/tls.md](/docs/tls.md).
+```
+kubectl create secret generic k8s-sidecar-injector --from-file=examples/tls/${DEPLOYMENT}/${CLUSTER}/sidecar-injector.crt --from-file=examples/tls/${DEPLOYMENT}/${CLUSTER}/sidecar-injector.key --namespace=kube-system
+```
+5. Create ConfigMaps (or sidecar config files on disk somewhere) so the injector has some sidecars to inject :) [/docs/configmaps.md](/docs/configmaps.md)
 
 Once you hack the example Kubernetes manifests to work for your deployment, deploy them to your cluster. The list of manifests you should deploy are below:
 
