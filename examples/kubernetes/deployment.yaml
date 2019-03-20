@@ -23,7 +23,7 @@ spec:
       volumes:
       - name: secrets
         secret:
-          secretName: k8s-sidecar-injector-bf2-production
+          secretName: k8s-sidecar-injector
       containers:
       - name: "k8s-sidecar-injector"
         imagePullPolicy: Always
