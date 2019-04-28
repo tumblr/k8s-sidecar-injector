@@ -40,7 +40,7 @@ A crappy ASCII diagram will help :)
      +------------+-----------------+          |                | |                 |
                   |                            +--------+-------+ +------+----------+
 discover injector |                                     |                |
-endoints          |                    watch ConfigMaps |                | load from disk
+endpoints         |                    watch ConfigMaps |                | load from disk
                   |                                     |                |
           +-------v--------+    pod launch          +---v----------------v-----+
           |                +------------------------>                          |
