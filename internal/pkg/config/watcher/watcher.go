@@ -106,6 +106,11 @@ func (c *K8sConfigMapWatcher) Watch(ctx context.Context, notifyMe chan<- interfa
 	for {
 		select {
 		case e = <-ch:
+			if e.Object == nil {
+				glog.Errorf("got nil event, restart watcher")
+				watcher.Stop()
+				return nil
+			}
 			glog.V(3).Infof("event: %s %s", e.Type, e.Object.GetObjectKind())
 			switch e.Type {
 			case watch.Added:
