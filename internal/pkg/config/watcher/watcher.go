@@ -4,6 +4,7 @@ package watcher
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -23,6 +24,9 @@ import (
 const (
 	serviceAccountNamespaceFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 )
+
+// EventNilObjectError: should restart watcher
+var EventNilObjectError = errors.New("got watcher event with nil Object")
 
 // K8sConfigMapWatcher is a struct that connects to the API and collects, parses, and emits sidecar configurations
 type K8sConfigMapWatcher struct {
@@ -106,10 +110,12 @@ func (c *K8sConfigMapWatcher) Watch(ctx context.Context, notifyMe chan<- interfa
 	for {
 		select {
 		case e = <-ch:
+			// after receive event with nil Object, watcher will begin receive thousands of events with nil Object
+			// restart watcher can fix this bug
+			// detail at https://github.com/kubernetes/client-go/issues/334
 			if e.Object == nil {
-				glog.Errorf("got nil event, restart watcher")
-				watcher.Stop()
-				return nil
+				glog.Errorf("got event with nil Object, should restart watcher")
+				return EventNilObjectError
 			}
 			glog.V(3).Infof("event: %s %s", e.Type, e.Object.GetObjectKind())
 			switch e.Type {
