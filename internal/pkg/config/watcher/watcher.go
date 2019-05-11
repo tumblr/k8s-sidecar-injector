@@ -25,8 +25,8 @@ const (
 	serviceAccountNamespaceFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 )
 
-// EventNilObjectError: should restart watcher
-var EventNilObjectError = errors.New("got watcher event with nil Object")
+// WatchChannelClosedError: should restart watcher
+var WatchChannelClosedError = errors.New("watcher channel has closed")
 
 // K8sConfigMapWatcher is a struct that connects to the API and collects, parses, and emits sidecar configurations
 type K8sConfigMapWatcher struct {
@@ -102,20 +102,18 @@ func (c *K8sConfigMapWatcher) Watch(ctx context.Context, notifyMe chan<- interfa
 	watcher, err := c.client.ConfigMaps(c.Namespace).Watch(metav1.ListOptions{
 		LabelSelector: mapStringStringToLabelSelector(c.ConfigMapLabels),
 	})
+	defer watcher.Stop()
 	if err != nil {
 		return fmt.Errorf("unable to create watcher (possible serviceaccount RBAC/ACL failure?): %s", err.Error())
 	}
-	ch := watcher.ResultChan()
-	var e watch.Event
 	for {
 		select {
-		case e = <-ch:
-			// after receive event with nil Object, watcher will begin receive thousands of events with nil Object
-			// restart watcher can fix this bug
+		case e, ok := <-watcher.ResultChan():
+			// channel may closed caused by HTTP timeout, should restart watcher
 			// detail at https://github.com/kubernetes/client-go/issues/334
-			if e.Object == nil {
-				glog.Errorf("got event with nil Object, should restart watcher")
-				return EventNilObjectError
+			if !ok {
+				glog.Errorf("channel has closed, should restart watcher")
+				return WatchChannelClosedError
 			}
 			glog.V(3).Infof("event: %s %s", e.Type, e.Object.GetObjectKind())
 			switch e.Type {
