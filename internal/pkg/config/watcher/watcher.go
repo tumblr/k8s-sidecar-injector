@@ -12,6 +12,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/tumblr/k8s-sidecar-injector/internal/pkg/config"
 	"k8s.io/api/core/v1"
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/watch"
@@ -115,6 +116,9 @@ func (c *K8sConfigMapWatcher) Watch(ctx context.Context, notifyMe chan<- interfa
 				glog.Errorf("channel has closed, should restart watcher")
 				return WatchChannelClosedError
 			}
+			if e.Type == watch.Error {
+				return apierrs.FromObject(e.Object)
+			}
 			glog.V(3).Infof("event: %s %s", e.Type, e.Object.GetObjectKind())
 			switch e.Type {
 			case watch.Added:
@@ -132,7 +136,6 @@ func (c *K8sConfigMapWatcher) Watch(ctx context.Context, notifyMe chan<- interfa
 		case <-ctx.Done():
 			glog.V(2).Infof("stopping configmap watcher, context indicated we are done")
 			// clean up, we cancelled the context, so stop the watch
-			watcher.Stop()
 			return nil
 		}
 	}

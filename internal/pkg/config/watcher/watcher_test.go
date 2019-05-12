@@ -1,6 +1,9 @@
 package watcher
 
 import (
+	"context"
+	"k8s.io/apimachinery/pkg/watch"
+	testcore "k8s.io/client-go/testing"
 	"testing"
 
 	_ "github.com/tumblr/k8s-sidecar-injector/internal/pkg/testing"
@@ -28,5 +31,25 @@ func TestGet(t *testing.T) {
 	}
 	if len(messages) != 0 {
 		t.Fatalf("expected 0 messages, but got %d", len(messages))
+	}
+}
+
+func TestWatcherChannelClose(t *testing.T) {
+	client := fake.NewSimpleClientset()
+	watcher := watch.NewEmptyWatch()
+	client.PrependWatchReactor("configmaps", testcore.DefaultWatchReactor(watcher, nil))
+
+	w := K8sConfigMapWatcher{
+		Config: testConfig,
+		client: client.CoreV1(),
+	}
+
+	sigChan := make(chan interface{}, 10)
+	// background context never canceled, no deadline
+	ctx := context.Background()
+
+	err := w.Watch(ctx, sigChan)
+	if err != nil && err != WatchChannelClosedError {
+		t.Errorf("expect catch WatchChannelClosedError, but got %s", err)
 	}
 }
