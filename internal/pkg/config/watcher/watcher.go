@@ -4,6 +4,7 @@ package watcher
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/tumblr/k8s-sidecar-injector/internal/pkg/config"
 	"k8s.io/api/core/v1"
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/watch"
@@ -23,6 +25,9 @@ import (
 const (
 	serviceAccountNamespaceFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 )
+
+// WatchChannelClosedError: should restart watcher
+var WatchChannelClosedError = errors.New("watcher channel has closed")
 
 // K8sConfigMapWatcher is a struct that connects to the API and collects, parses, and emits sidecar configurations
 type K8sConfigMapWatcher struct {
@@ -98,14 +103,22 @@ func (c *K8sConfigMapWatcher) Watch(ctx context.Context, notifyMe chan<- interfa
 	watcher, err := c.client.ConfigMaps(c.Namespace).Watch(metav1.ListOptions{
 		LabelSelector: mapStringStringToLabelSelector(c.ConfigMapLabels),
 	})
+	defer watcher.Stop()
 	if err != nil {
 		return fmt.Errorf("unable to create watcher (possible serviceaccount RBAC/ACL failure?): %s", err.Error())
 	}
-	ch := watcher.ResultChan()
-	var e watch.Event
 	for {
 		select {
-		case e = <-ch:
+		case e, ok := <-watcher.ResultChan():
+			// channel may closed caused by HTTP timeout, should restart watcher
+			// detail at https://github.com/kubernetes/client-go/issues/334
+			if !ok {
+				glog.Errorf("channel has closed, should restart watcher")
+				return WatchChannelClosedError
+			}
+			if e.Type == watch.Error {
+				return apierrs.FromObject(e.Object)
+			}
 			glog.V(3).Infof("event: %s %s", e.Type, e.Object.GetObjectKind())
 			switch e.Type {
 			case watch.Added:
@@ -123,7 +136,6 @@ func (c *K8sConfigMapWatcher) Watch(ctx context.Context, notifyMe chan<- interfa
 		case <-ctx.Done():
 			glog.V(2).Infof("stopping configmap watcher, context indicated we are done")
 			// clean up, we cancelled the context, so stop the watch
-			watcher.Stop()
 			return nil
 		}
 	}

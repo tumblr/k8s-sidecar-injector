@@ -113,7 +113,12 @@ func main() {
 				glog.Infof("launching watcher for ConfigMaps")
 				err := configWatcher.Watch(ctx, sigChan)
 				if err != nil {
-					glog.Fatalf("error watching for new ConfigMaps (terminating): %s", err.Error())
+					switch err {
+					case watcher.WatchChannelClosedError:
+						glog.Errorf("watcher got error, try to restart watcher: %s", err.Error())
+					default:
+						glog.Fatalf("error watching for new ConfigMaps (terminating): %s", err.Error())
+					}
 				}
 			}
 		}()
