@@ -42,6 +42,7 @@ func TestCoalesceEvents(t *testing.T) {
 		fmt.Printf("Stopping input generator goroutine\n")
 	}()
 
+	stop := make(chan struct{})
 	go func() {
 		// read events from output
 		fmt.Printf("Starting output reader goroutine\n")
@@ -50,9 +51,11 @@ func TestCoalesceEvents(t *testing.T) {
 			case <-output:
 				//fmt.Printf("output: got event\n")
 				actualEvents++
+			case <-stop:
+				break
 			default:
 				if output == nil {
-					return
+					break
 				}
 			}
 		}
@@ -63,6 +66,7 @@ func TestCoalesceEvents(t *testing.T) {
 	wg.Wait()
 	// wait at least 1 debounce cycle for the final emission of events
 	time.Sleep(debounceDuration)
+	stop <- struct{}{}
 	expectedEvents := 3
 	if expectedEvents != actualEvents {
 		t.Errorf("expected %d debounced events, but got %d", expectedEvents, actualEvents)
