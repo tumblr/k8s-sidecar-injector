@@ -2,6 +2,7 @@ package watcher
 
 import (
 	"context"
+	"errors"
 	"k8s.io/apimachinery/pkg/watch"
 	testcore "k8s.io/client-go/testing"
 	"testing"
@@ -51,5 +52,27 @@ func TestWatcherChannelClose(t *testing.T) {
 	err := w.Watch(ctx, sigChan)
 	if err != nil && err != WatchChannelClosedError {
 		t.Errorf("expect catch WatchChannelClosedError, but got %s", err)
+	}
+}
+
+func TestWatcherWatchCreateError(t *testing.T) {
+	client := fake.NewSimpleClientset()
+
+	client.PrependWatchReactor("configmaps", func(_ testcore.Action) (
+		handled bool,
+		ret watch.Interface,
+		err error,
+	) {
+		return true, nil, errors.New("did not construct a watcher")
+	})
+
+	w := K8sConfigMapWatcher{
+		Config: testConfig,
+		client: client.CoreV1(),
+	}
+
+	err := w.Watch(context.Background(), make(chan interface{}, 10))
+	if err == nil {
+		t.Error("expected Watch to fail when the watcher couldn't be created")
 	}
 }

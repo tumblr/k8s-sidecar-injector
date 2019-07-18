@@ -103,10 +103,10 @@ func (c *K8sConfigMapWatcher) Watch(ctx context.Context, notifyMe chan<- interfa
 	watcher, err := c.client.ConfigMaps(c.Namespace).Watch(metav1.ListOptions{
 		LabelSelector: mapStringStringToLabelSelector(c.ConfigMapLabels),
 	})
-	defer watcher.Stop()
 	if err != nil {
 		return fmt.Errorf("unable to create watcher (possible serviceaccount RBAC/ACL failure?): %s", err.Error())
 	}
+	defer watcher.Stop()
 	for {
 		select {
 		case e, ok := <-watcher.ResultChan():
