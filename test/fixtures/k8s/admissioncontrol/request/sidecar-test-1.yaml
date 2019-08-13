@@ -1,0 +1,9 @@
+---
+# this is an AdmissionRequest object
+# https://godoc.org/k8s.io/api/admission/v1beta1#AdmissionRequest
+object:
+  metadata:
+    annotations:
+      injector.unittest.com/request: "sidecar-test"
+  spec:
+    containers: []

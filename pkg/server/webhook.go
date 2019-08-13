@@ -124,6 +124,14 @@ func applyDefaultsWorkaround(containers []corev1.Container, volumes []corev1.Vol
 	})
 }
 
+func (whsvr *WebhookServer) statusAnnotationKey() string {
+	return whsvr.Config.AnnotationNamespace + "/status"
+}
+
+func (whsvr *WebhookServer) requestAnnotationKey() string {
+	return whsvr.Config.AnnotationNamespace + "/request"
+}
+
 // Check whether the target resoured need to be mutated
 func (whsvr *WebhookServer) getSidecarConfigurationRequested(ignoredList []string, metadata *metav1.ObjectMeta) (string, error) {
 	// skip special kubernetes system namespaces
@@ -139,8 +147,8 @@ func (whsvr *WebhookServer) getSidecarConfigurationRequested(ignoredList []strin
 		annotations = map[string]string{}
 	}
 
-	statusAnnotationKey := whsvr.Config.AnnotationNamespace + "/status"
-	requestAnnotationKey := whsvr.Config.AnnotationNamespace + "/request"
+	statusAnnotationKey := whsvr.statusAnnotationKey()
+	requestAnnotationKey := whsvr.requestAnnotationKey()
 
 	status, ok := annotations[statusAnnotationKey]
 	if ok && strings.ToLower(status) == StatusInjected {
@@ -419,12 +427,11 @@ func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[s
 }
 
 // main mutation process
-func (whsvr *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
-	req := ar.Request
+func (whsvr *WebhookServer) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
 		glog.Errorf("Could not unmarshal raw object: %v", err)
-		injectionCounter.With(prometheus.Labels{"status": "error", "reason": "unmarshal_error"}).Inc()
+		injectionCounter.With(prometheus.Labels{"status": "error", "reason": "unmarshal_error", "requested": ""}).Inc()
 		return &v1beta1.AdmissionResponse{
 			Result: &metav1.Status{
 				Message: err.Error(),
@@ -459,7 +466,7 @@ func (whsvr *WebhookServer) mutate(ar *v1beta1.AdmissionReview) *v1beta1.Admissi
 	// Workaround: https://github.com/kubernetes/kubernetes/issues/57982
 	applyDefaultsWorkaround(injectionConfig.Containers, injectionConfig.Volumes)
 	annotations := map[string]string{}
-	annotations[config.InjectionStatusAnnotation] = StatusInjected
+	annotations[whsvr.statusAnnotationKey()] = StatusInjected
 	patchBytes, err := createPatch(&pod, injectionConfig, annotations)
 	if err != nil {
 		injectionCounter.With(prometheus.Labels{"status": "error", "reason": "patching_error", "requested": injectionKey}).Inc()
@@ -532,7 +539,7 @@ func (whsvr *WebhookServer) mutateHandler(w http.ResponseWriter, r *http.Request
 			},
 		}
 	} else {
-		admissionResponse = whsvr.mutate(&ar)
+		admissionResponse = whsvr.mutate(ar.Request)
 	}
 
 	admissionReview := v1beta1.AdmissionReview{}

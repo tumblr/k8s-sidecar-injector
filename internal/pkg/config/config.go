@@ -20,8 +20,6 @@ const (
 )
 
 var (
-	// InjectionStatusAnnotation is the annotation set on resources to reflect the status of injection
-	InjectionStatusAnnotation = fmt.Sprintf("%s/status", annotationNamespaceDefault)
 	// ErrMissingName ..
 	ErrMissingName = fmt.Errorf(`name field is required for an injection config`)
 	// ErrNoConfigurationLoaded ..

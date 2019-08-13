@@ -1,0 +1,18 @@
+---
+# this is an AdmissionRequest object
+# https://godoc.org/k8s.io/api/admission/v1beta1#AdmissionRequest
+object:
+  metadata:
+    annotations:
+      injector.unittest.com/request: this-doesnt-exist
+  spec:
+    containers:
+    - name: memory-demo-2-ctr
+      image: polinux/stress
+      resources:
+        requests:
+          memory: "50Mi"
+        limits:
+          memory: "100Mi"
+      command: ["stress"]
+      args: ["--vm", "1", "--vm-bytes", "250M", "--vm-hang", "1"]
