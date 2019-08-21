@@ -26,8 +26,8 @@ const (
 	serviceAccountNamespaceFilePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
 )
 
-// WatchChannelClosedError: should restart watcher
-var WatchChannelClosedError = errors.New("watcher channel has closed")
+// ErrWatchChannelClosed should restart watcher
+var ErrWatchChannelClosed = errors.New("watcher channel has closed")
 
 // K8sConfigMapWatcher is a struct that connects to the API and collects, parses, and emits sidecar configurations
 type K8sConfigMapWatcher struct {
@@ -114,7 +114,7 @@ func (c *K8sConfigMapWatcher) Watch(ctx context.Context, notifyMe chan<- interfa
 			// detail at https://github.com/kubernetes/client-go/issues/334
 			if !ok {
 				glog.Errorf("channel has closed, should restart watcher")
-				return WatchChannelClosedError
+				return ErrWatchChannelClosed
 			}
 			if e.Type == watch.Error {
 				return apierrs.FromObject(e.Object)

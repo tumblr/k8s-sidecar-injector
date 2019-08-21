@@ -8,7 +8,8 @@ RUN apk --no-cache add \
 
 WORKDIR /src
 COPY go.mod go.sum Makefile ./
-RUN make vendor
+# run vendor install and lint, so we have all deps installed
+RUN make vendor lint
 COPY . .
 RUN make test all
 

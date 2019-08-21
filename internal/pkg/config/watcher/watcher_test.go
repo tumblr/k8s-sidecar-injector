@@ -50,8 +50,8 @@ func TestWatcherChannelClose(t *testing.T) {
 	ctx := context.Background()
 
 	err := w.Watch(ctx, sigChan)
-	if err != nil && err != WatchChannelClosedError {
-		t.Errorf("expect catch WatchChannelClosedError, but got %s", err)
+	if err != nil && err != ErrWatchChannelClosed {
+		t.Errorf("expect catch ErrWatchChannelClosed, but got %s", err)
 	}
 }
 

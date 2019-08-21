@@ -1,0 +1,23 @@
+[
+   {
+      "op": "add",
+      "path": "/spec/containers/0/env/-",
+      "value": {
+          "name": "FOO_BAR",
+          "value": "something interesting"
+      }
+  },
+  {
+      "path": "/spec/containers/0/env/-",
+      "value": {
+          "name": "ENVIRONMENT",
+          "value": "production"
+      },
+      "op": "add"
+  },
+  {
+      "op": "add",
+      "path": "/metadata/annotations/injector.unittest.com~1status",
+      "value": "injected"
+  }
+]
