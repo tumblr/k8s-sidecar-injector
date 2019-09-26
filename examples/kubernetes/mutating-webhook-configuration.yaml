@@ -22,4 +22,4 @@ webhooks:
       namespace: "kube-system"
       path: "/mutate"   # what /url/slug to send requests at
     # See README.md for how this was generated!
-    caBundle: "!!! your base64 encoded cabundle here !!!"
+    caBundle: "__CA_BUNDLE_BASE64__"
