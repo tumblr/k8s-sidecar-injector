@@ -15,7 +15,7 @@ A sidecar configuration looks like:
 # Each InjectionConfig is a struct that adheres to kubernetes' volume and containers
 # spec. Any volumes injected are scoped to the namespace that the
 # resource exists within
-name: "test"
+name: "tumblr-php"
 containers:
 # we inject a nginx container
 - name: sidecar-nginx
