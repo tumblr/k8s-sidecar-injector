@@ -35,7 +35,7 @@ data:
     env: []
 ```
 
-Please note, the `labels` must match the provided `$CONFIGMAP_LABELS`, so the injector can discover these ConfigMaps. Additionally, make sure the `namespace` jives with the `$CONFIGMAP_NAMESPACE` (or if omitted, the ConfigMap is in the same namespace as the sidecar injector).
+Please note, the `labels` must match the provided `$CONFIGMAP_LABELS`, so the injector can discover these ConfigMaps. Additionally, make sure the `namespace` lives with the `$CONFIGMAP_NAMESPACE` (or if omitted, the ConfigMap is in the same namespace as the sidecar injector).
 
 See [/docs/sidecar-configuration-format.md](/docs/sidecar-configuration-format.md) for more details on the schema for a Sidecar Configuration.
 
