@@ -1,0 +1,11 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-network-pid
+  namespace: default
+data:
+  hostNetwork-hostPid: |
+    name: test-network-pid
+    hostNetwork: true
+    hostPID: true

@@ -1,0 +1,4 @@
+---
+name: test-network-pid
+hostNetwork: true
+hostPID: true
