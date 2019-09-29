@@ -9,6 +9,8 @@ import (
 // config struct for testing: where to find the file and what we expect to find in it
 type configExpectation struct {
 	name                       string
+	hostNetwork                bool
+	hostPID                    bool
 	path                       string
 	expectedEnvVarCount        int
 	expectedContainerCount     int
@@ -83,6 +85,12 @@ var (
 			expectedVolumeMountCount:   0,
 			expectedHostAliasCount:     0,
 			expectedInitContainerCount: 1,
+		},
+		"network-pid": configExpectation{
+			name:        "test-network-pid",
+			path:        fixtureSidecarsDir + "/test-network-pid.yaml",
+			hostNetwork: true,
+			hostPID:     true,
 		},
 	}
 )
