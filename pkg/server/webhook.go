@@ -229,13 +229,7 @@ func addContainers(target, added []corev1.Container, basePath string) (patch []p
 }
 
 func setHostNetwork(target bool, addedHostNetwork bool, basePath string) (patch []patchOperation) {
-	if target == false {
-		patch = append(patch, patchOperation{
-			Op:    "add",
-			Path:  basePath,
-			Value: addedHostNetwork,
-		})
-	} else {
+	if addedHostNetwork == true {
 		patch = append(patch, patchOperation{
 			Op:    "replace",
 			Path:  basePath,
@@ -245,23 +239,16 @@ func setHostNetwork(target bool, addedHostNetwork bool, basePath string) (patch 
 	return patch
 }
 
-func setHostPID(target bool, addHostPID bool, basePath string) (patch []patchOperation) {
-	if target == false {
-		patch = append(patch, patchOperation{
-			Op:    "add",
-			Path:  basePath,
-			Value: addHostPID,
-		})
-	} else {
+func setHostPID(target bool, addedHostPID bool, basePath string) (patch []patchOperation) {
+	if addedHostPID == true {
 		patch = append(patch, patchOperation{
 			Op:    "replace",
 			Path:  basePath,
-			Value: addHostPID,
+			Value: addedHostPID,
 		})
 	}
 	return patch
 }
-
 
 func addInitContainers(target, added []corev1.Container, basePath string) (patch []patchOperation) {
 	first := len(target) == 0
