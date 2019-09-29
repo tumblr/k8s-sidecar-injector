@@ -69,7 +69,7 @@ type mutationTest struct {
 }
 
 func TestLoadConfig(t *testing.T) {
-	expectedNumInjectionConfigs := 6
+	expectedNumInjectionConfigs := 7
 	c, err := config.LoadConfigDirectory(sidecars)
 	if err != nil {
 		t.Error(err)
