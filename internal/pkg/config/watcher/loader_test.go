@@ -11,11 +11,13 @@ import (
 	"github.com/tumblr/k8s-sidecar-injector/internal/pkg/config"
 	_ "github.com/tumblr/k8s-sidecar-injector/internal/pkg/testing"
 	"gopkg.in/yaml.v2"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 )
 
 type injectionConfigExpectation struct {
 	name               string
+	hostNetwork        bool
+	hostPID            bool
 	volumeCount        int
 	envCount           int
 	containerCount     int
@@ -59,6 +61,14 @@ var (
 				hostAliasCount:     0,
 				initContainerCount: 0,
 			},
+		},
+		"configmap-hostNetwork-hostPid": []injectionConfigExpectation{
+			injectionConfigExpectation{
+				name:        "test-network-pid",
+				hostNetwork: true,
+				hostPID:     true,
+			},
+
 		},
 		"configmap-multiple1": []injectionConfigExpectation{
 			injectionConfigExpectation{
@@ -169,6 +179,12 @@ func TestLoadFromConfigMap(t *testing.T) {
 			ic, err := config.LoadInjectionConfigFromFilePath(expectedicFile)
 			if err != nil {
 				t.Fatalf("unable to load expected fixture %s: %s", expectedicFile, err.Error())
+			}
+			if ic.HostNetwork != expectedICF.hostNetwork {
+				t.Fatalf("expected %t hostnetwork variables in %s, but found %t", expectedICF.hostNetwork, expectedICF.name, ic.HostNetwork)
+			}
+			if ic.HostPID != expectedICF.hostPID {
+				t.Fatalf("expected %t hostpid variables in %s, but found %t", expectedICF.hostPID, expectedICF.name, ic.HostPID)
 			}
 			if len(ic.Environment) != expectedICF.envCount {
 				t.Fatalf("expected %d environment variables in %s, but found %d", expectedICF.envCount, expectedICF.name, len(ic.Environment))

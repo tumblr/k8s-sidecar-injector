@@ -228,6 +228,41 @@ func addContainers(target, added []corev1.Container, basePath string) (patch []p
 	return patch
 }
 
+func setHostNetwork(target bool, addedHostNetwork bool, basePath string) (patch []patchOperation) {
+	if target == false {
+		patch = append(patch, patchOperation{
+			Op:    "add",
+			Path:  basePath,
+			Value: addedHostNetwork,
+		})
+	} else {
+		patch = append(patch, patchOperation{
+			Op:    "replace",
+			Path:  basePath,
+			Value: addedHostNetwork,
+		})
+	}
+	return patch
+}
+
+func setHostPID(target bool, addHostPID bool, basePath string) (patch []patchOperation) {
+	if target == false {
+		patch = append(patch, patchOperation{
+			Op:    "add",
+			Path:  basePath,
+			Value: addHostPID,
+		})
+	} else {
+		patch = append(patch, patchOperation{
+			Op:    "replace",
+			Path:  basePath,
+			Value: addHostPID,
+		})
+	}
+	return patch
+}
+
+
 func addInitContainers(target, added []corev1.Container, basePath string) (patch []patchOperation) {
 	first := len(target) == 0
 	var value interface{}
@@ -415,6 +450,10 @@ func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[s
 	// now, patch all existing containers with the env vars and volume mounts
 	patch = append(patch, setEnvironment(pod.Spec.Containers, inj.Environment)...)
 	patch = append(patch, addVolumeMounts(pod.Spec.Containers, inj.VolumeMounts)...)
+
+	// now, set hostNetwork,hostPID
+	patch = append(patch, setHostNetwork(pod.Spec.HostNetwork, inj.HostNetwork, "/spec/hostNetwork")...)
+	patch = append(patch, setHostPID(pod.Spec.HostPID, inj.HostPID, "/spec/hostPID")...)
 
 	// now, add initContainers, hostAliases and volumes
 	patch = append(patch, addContainers(pod.Spec.InitContainers, mutatedInjectedInitContainers, "/spec/initContainers")...)

@@ -29,6 +29,8 @@ var (
 // InjectionConfig is a specific instance of a injected config, for a given annotation
 type InjectionConfig struct {
 	Name           string               `json:"name"`
+	HostNetwork    bool                 `json:"hostNetwork"`
+	HostPID        bool                 `json:"hostPID"`
 	Containers     []corev1.Container   `json:"containers"`
 	Volumes        []corev1.Volume      `json:"volumes"`
 	Environment    []corev1.EnvVar      `json:"env"`
