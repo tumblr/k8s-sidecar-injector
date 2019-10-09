@@ -16,6 +16,7 @@ type configExpectation struct {
 	expectedVolumeMountCount   int
 	expectedHostAliasCount     int
 	expectedInitContainerCount int
+	expectedServiceAccount     string
 }
 
 var (
@@ -33,6 +34,7 @@ var (
 			expectedVolumeMountCount:   0,
 			expectedHostAliasCount:     0,
 			expectedInitContainerCount: 0,
+			expectedServiceAccount:     "",
 		},
 		"complex-sidecar": configExpectation{
 			name:                       "complex-sidecar",
@@ -43,6 +45,7 @@ var (
 			expectedVolumeMountCount:   0,
 			expectedHostAliasCount:     0,
 			expectedInitContainerCount: 0,
+			expectedServiceAccount:     "",
 		},
 		"env1": configExpectation{
 			name:                       "env1",
@@ -53,6 +56,7 @@ var (
 			expectedVolumeMountCount:   0,
 			expectedHostAliasCount:     0,
 			expectedInitContainerCount: 0,
+			expectedServiceAccount:     "",
 		},
 		"volume-mounts": configExpectation{
 			name:                       "volume-mounts",
@@ -63,6 +67,7 @@ var (
 			expectedVolumeMountCount:   1,
 			expectedHostAliasCount:     0,
 			expectedInitContainerCount: 0,
+			expectedServiceAccount:     "",
 		},
 		"host-aliases": configExpectation{
 			name:                       "host-aliases",
@@ -73,6 +78,7 @@ var (
 			expectedVolumeMountCount:   0,
 			expectedHostAliasCount:     6,
 			expectedInitContainerCount: 0,
+			expectedServiceAccount:     "",
 		},
 		"init-containers": configExpectation{
 			name:                       "init-containers",
@@ -83,6 +89,18 @@ var (
 			expectedVolumeMountCount:   0,
 			expectedHostAliasCount:     0,
 			expectedInitContainerCount: 1,
+			expectedServiceAccount:     "",
+		},
+		"service-account": configExpectation{
+			name:                       "service-account",
+			path:                       fixtureSidecarsDir + "/service-account.yaml",
+			expectedEnvVarCount:        0,
+			expectedContainerCount:     0,
+			expectedVolumeCount:        0,
+			expectedVolumeMountCount:   0,
+			expectedHostAliasCount:     0,
+			expectedInitContainerCount: 0,
+			expectedServiceAccount:     "fuck",
 		},
 	}
 )
