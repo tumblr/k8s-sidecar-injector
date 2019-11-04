@@ -101,6 +101,30 @@ var (
 			HostAliasCount:     0,
 			InitContainerCount: 1,
 		},
+		// test simple inheritance
+		"simple inheritance from complex-sidecar": testhelper.ConfigExpectation{
+			Name:               "inheritance-complex",
+			Version:            "v1",
+			Path:               fixtureSidecarsDir + "/inheritance-1.yaml",
+			EnvCount:           2,
+			ContainerCount:     5,
+			VolumeCount:        2,
+			VolumeMountCount:   0,
+			HostAliasCount:     1,
+			InitContainerCount: 1,
+		},
+		// test deep inheritance
+		"deep inheritance from inheritance-complex": testhelper.ConfigExpectation{
+			Name:               "inheritance-deep",
+			Version:            "v2",
+			Path:               fixtureSidecarsDir + "/inheritance-deep-2.yaml",
+			EnvCount:           3,
+			ContainerCount:     6,
+			VolumeCount:        3,
+			VolumeMountCount:   0,
+			HostAliasCount:     3,
+			InitContainerCount: 2,
+		},
 	}
 )
 

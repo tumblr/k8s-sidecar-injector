@@ -162,6 +162,8 @@ func LoadConfigDirectory(path string) (*Config, error) {
 	return &cfg, nil
 }
 
+// Merge mutates base by merging in fields from child, to create an inheritance
+// functionality.
 func (base *InjectionConfig) Merge(child *InjectionConfig) error {
 	if child == nil {
 		return ErrCannotMergeNilInjectionConfig
@@ -174,12 +176,14 @@ func (base *InjectionConfig) Merge(child *InjectionConfig) error {
 	// merge containers
 	for _, cctr := range child.Containers {
 		contains := false
+
 		for bi, bctr := range base.Containers {
 			if bctr.Name == cctr.Name {
 				contains = true
 				base.Containers[bi] = cctr
 			}
 		}
+
 		if !contains {
 			base.Containers = append(base.Containers, cctr)
 		}
@@ -188,12 +192,14 @@ func (base *InjectionConfig) Merge(child *InjectionConfig) error {
 	// merge volumes
 	for _, cv := range child.Volumes {
 		contains := false
+
 		for bi, bv := range base.Volumes {
 			if bv.Name == cv.Name {
 				contains = true
 				base.Volumes[bi] = cv
 			}
 		}
+
 		if !contains {
 			base.Volumes = append(base.Volumes, cv)
 		}
@@ -202,12 +208,14 @@ func (base *InjectionConfig) Merge(child *InjectionConfig) error {
 	// merge environment
 	for _, cv := range child.Environment {
 		contains := false
+
 		for bi, bv := range base.Environment {
 			if bv.Name == cv.Name {
 				contains = true
 				base.Environment[bi] = cv
 			}
 		}
+
 		if !contains {
 			base.Environment = append(base.Environment, cv)
 		}
@@ -216,12 +224,14 @@ func (base *InjectionConfig) Merge(child *InjectionConfig) error {
 	// merge volume mounts
 	for _, cv := range child.VolumeMounts {
 		contains := false
+
 		for bi, bv := range base.VolumeMounts {
 			if bv.Name == cv.Name {
 				contains = true
 				base.VolumeMounts[bi] = cv
 			}
 		}
+
 		if !contains {
 			base.VolumeMounts = append(base.VolumeMounts, cv)
 		}
@@ -229,19 +239,19 @@ func (base *InjectionConfig) Merge(child *InjectionConfig) error {
 
 	// merge host aliases
 	// note: we do not need to merge things, as entries are not keyed
-	for _, cv := range child.HostAliases {
-		base.HostAliases = append(base.HostAliases, cv)
-	}
+	base.HostAliases = append(base.HostAliases, child.HostAliases...)
 
 	// merge init containers
 	for _, cv := range child.InitContainers {
 		contains := false
+
 		for bi, bv := range base.InitContainers {
 			if bv.Name == cv.Name {
 				contains = true
 				base.InitContainers[bi] = cv
 			}
 		}
+
 		if !contains {
 			base.InitContainers = append(base.InitContainers, cv)
 		}
@@ -274,8 +284,10 @@ func LoadInjectionConfigFromFilePath(configFile string) (*InjectionConfig, error
 		if err != nil {
 			return nil, err
 		}
-		return base.Merge(ic)
+
+		return base, base.Merge(ic)
 	}
+
 	return ic, nil
 }
 

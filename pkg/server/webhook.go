@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"path"
 	"strings"
 
 	"github.com/golang/glog"
@@ -382,13 +383,13 @@ func updateAnnotations(target map[string]string, added map[string]string) (patch
 			target = map[string]string{}
 			patch = append(patch, patchOperation{
 				Op:    "add",
-				Path:  "/metadata/annotations/" + keyEscaped,
+				Path:  path.Join("/metadata/annotations/", keyEscaped),
 				Value: value,
 			})
 		} else {
 			patch = append(patch, patchOperation{
 				Op:    "replace",
-				Path:  "/metadata/annotations/" + keyEscaped,
+				Path:  path.Join("/metadata/annotations", keyEscaped),
 				Value: value,
 			})
 		}
