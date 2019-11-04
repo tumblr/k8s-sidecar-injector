@@ -29,6 +29,14 @@ name: "test:v1.2"
 # spec. Any volumes injected are scoped to the namespace that the
 # resource exists within
 
+# Optionally, you can inherit from another sidecar configuration. This is useful to reduce
+# duplication in your sidecars. Fields that appear in this config will override and replace
+# fields in the inherited sidecar. We intelligently merge list fields as well, so top level
+# keys are not blindly replaced, but merged instead.
+# `inherits` is a file on disk to load the parent config from.
+# NOTE: `inherits` is not supported when loading InjectionConfigs from ConfigMap
+inherits: "config/some-sidecar.yaml"
+
 containers:
 # we inject a nginx container
 - name: sidecar-nginx
