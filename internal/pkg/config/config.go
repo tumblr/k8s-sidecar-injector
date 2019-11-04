@@ -25,11 +25,14 @@ var (
 	ErrMissingName = fmt.Errorf(`name field is required for an injection config`)
 	// ErrNoConfigurationLoaded ..
 	ErrNoConfigurationLoaded = fmt.Errorf(`at least one config must be present in the --config-directory`)
+	// ErrCannotMergeNilInjectionConfig indicates an error trying to merge `nil` into an InjectionConfig
+	ErrCannotMergeNilInjectionConfig = fmt.Errorf("cannot merge nil InjectionConfig")
 )
 
 // InjectionConfig is a specific instance of a injected config, for a given annotation
 type InjectionConfig struct {
 	Name           string               `json:"name"`
+	Inherits       string               `json:"inherits"`
 	Containers     []corev1.Container   `json:"containers"`
 	Volumes        []corev1.Volume      `json:"volumes"`
 	Environment    []corev1.EnvVar      `json:"env"`
@@ -49,7 +52,20 @@ type Config struct {
 
 // String returns a string representation of the config
 func (c *InjectionConfig) String() string {
-	return fmt.Sprintf("%s: %d containers, %d init containers, %d volumes, %d environment vars, %d volume mounts, %d host aliases", c.FullName(), len(c.Containers), len(c.InitContainers), len(c.Volumes), len(c.Environment), len(c.VolumeMounts), len(c.HostAliases))
+	inheritsString := ""
+	if c.Inherits != "" {
+		inheritsString = fmt.Sprintf(" (inherits %s)", c.Inherits)
+	}
+
+	return fmt.Sprintf("%s%s: %d containers, %d init containers, %d volumes, %d environment vars, %d volume mounts, %d host aliases",
+		c.FullName(),
+		inheritsString,
+		len(c.Containers),
+		len(c.InitContainers),
+		len(c.Volumes),
+		len(c.Environment),
+		len(c.VolumeMounts),
+		len(c.HostAliases))
 }
 
 // Version returns the parsed version of this injection config. If no version is specified,
@@ -146,7 +162,98 @@ func LoadConfigDirectory(path string) (*Config, error) {
 	return &cfg, nil
 }
 
+func (base *InjectionConfig) Merge(child *InjectionConfig) error {
+	if child == nil {
+		return ErrCannotMergeNilInjectionConfig
+	}
+	// for all fields, merge child into base, eventually returning base
+	base.Name = child.Name
+	base.version = child.version
+	base.Inherits = child.Inherits
+
+	// merge containers
+	for _, cctr := range child.Containers {
+		contains := false
+		for bi, bctr := range base.Containers {
+			if bctr.Name == cctr.Name {
+				contains = true
+				base.Containers[bi] = cctr
+			}
+		}
+		if !contains {
+			base.Containers = append(base.Containers, cctr)
+		}
+	}
+
+	// merge volumes
+	for _, cv := range child.Volumes {
+		contains := false
+		for bi, bv := range base.Volumes {
+			if bv.Name == cv.Name {
+				contains = true
+				base.Volumes[bi] = cv
+			}
+		}
+		if !contains {
+			base.Volumes = append(base.Volumes, cv)
+		}
+	}
+
+	// merge environment
+	for _, cv := range child.Environment {
+		contains := false
+		for bi, bv := range base.Environment {
+			if bv.Name == cv.Name {
+				contains = true
+				base.Environment[bi] = cv
+			}
+		}
+		if !contains {
+			base.Environment = append(base.Environment, cv)
+		}
+	}
+
+	// merge volume mounts
+	for _, cv := range child.VolumeMounts {
+		contains := false
+		for bi, bv := range base.VolumeMounts {
+			if bv.Name == cv.Name {
+				contains = true
+				base.VolumeMounts[bi] = cv
+			}
+		}
+		if !contains {
+			base.VolumeMounts = append(base.VolumeMounts, cv)
+		}
+	}
+
+	// merge host aliases
+	// note: we do not need to merge things, as entries are not keyed
+	for _, cv := range child.HostAliases {
+		base.HostAliases = append(base.HostAliases, cv)
+	}
+
+	// merge init containers
+	for _, cv := range child.InitContainers {
+		contains := false
+		for bi, bv := range base.InitContainers {
+			if bv.Name == cv.Name {
+				contains = true
+				base.InitContainers[bi] = cv
+			}
+		}
+		if !contains {
+			base.InitContainers = append(base.InitContainers, cv)
+		}
+	}
+
+	return nil
+}
+
 // LoadInjectionConfigFromFilePath returns a InjectionConfig given a yaml file on disk
+// NOTE: if the InjectionConfig loaded has an Inherits field, we recursively load from Inherits
+// and merge the InjectionConfigs to create an inheritance pattern. Inherits is not supported for
+// configs loaded via `LoadInjectionConfig`
 func LoadInjectionConfigFromFilePath(configFile string) (*InjectionConfig, error) {
 	f, err := os.Open(configFile)
 	if err != nil {
@@ -156,7 +263,20 @@ func LoadInjectionConfigFromFilePath(configFile string) (*InjectionConfig, error
 	defer f.Close()
 	glog.V(3).Infof("Loading injection config from file %s", configFile)
 
-	return LoadInjectionConfig(f)
+	ic, err := LoadInjectionConfig(f)
+	if err != nil {
+		return nil, err
+	}
+
+	// Support inheritance from an InjectionConfig loaded from a file on disk
+	if ic.Inherits != "" {
+		base, err := LoadInjectionConfigFromFilePath(ic.Inherits)
+		if err != nil {
+			return nil, err
+		}
+		return base.Merge(ic)
+	}
+	return ic, nil
 }
 
 // LoadInjectionConfig takes an io.Reader and parses out an injectionconfig
