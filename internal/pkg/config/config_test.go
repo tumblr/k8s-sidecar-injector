@@ -1,6 +1,8 @@
 package config
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	_ "github.com/tumblr/k8s-sidecar-injector/internal/pkg/testing"
@@ -8,7 +10,12 @@ import (
 
 // config struct for testing: where to find the file and what we expect to find in it
 type configExpectation struct {
-	name                       string
+	// name is not the Name in the loaded config, but only the "some-config" of "some-config:1.2"
+	name string
+	// version is the parsed version string, or "latest" if omitted
+	version string
+	// fullName is the canonical full name, i.e. some-config:1.2
+	fullName                   string
 	path                       string
 	expectedEnvVarCount        int
 	expectedContainerCount     int
@@ -16,6 +23,10 @@ type configExpectation struct {
 	expectedVolumeMountCount   int
 	expectedHostAliasCount     int
 	expectedInitContainerCount int
+}
+
+func (x *configExpectation) FullName() string {
+	return strings.ToLower(fmt.Sprintf("%s:%s", x.name, x.version))
 }
 
 var (
@@ -26,6 +37,7 @@ var (
 	testConfigs = map[string]configExpectation{
 		"sidecar-test": configExpectation{
 			name:                       "sidecar-test",
+			version:                    "latest",
 			path:                       fixtureSidecarsDir + "/sidecar-test.yaml",
 			expectedEnvVarCount:        2,
 			expectedContainerCount:     2,
@@ -36,6 +48,7 @@ var (
 		},
 		"complex-sidecar": configExpectation{
 			name:                       "complex-sidecar",
+			version:                    "latest",
 			path:                       fixtureSidecarsDir + "/complex-sidecar.yaml",
 			expectedEnvVarCount:        0,
 			expectedContainerCount:     4,
@@ -46,6 +59,7 @@ var (
 		},
 		"env1": configExpectation{
 			name:                       "env1",
+			version:                    "latest",
 			path:                       fixtureSidecarsDir + "/env1.yaml",
 			expectedEnvVarCount:        3,
 			expectedContainerCount:     0,
@@ -56,6 +70,7 @@ var (
 		},
 		"volume-mounts": configExpectation{
 			name:                       "volume-mounts",
+			version:                    "latest",
 			path:                       fixtureSidecarsDir + "/volume-mounts.yaml",
 			expectedEnvVarCount:        2,
 			expectedContainerCount:     3,
@@ -66,6 +81,7 @@ var (
 		},
 		"host-aliases": configExpectation{
 			name:                       "host-aliases",
+			version:                    "latest",
 			path:                       fixtureSidecarsDir + "/host-aliases.yaml",
 			expectedEnvVarCount:        2,
 			expectedContainerCount:     1,
@@ -76,7 +92,31 @@ var (
 		},
 		"init-containers": configExpectation{
 			name:                       "init-containers",
+			version:                    "latest",
 			path:                       fixtureSidecarsDir + "/init-containers.yaml",
+			expectedEnvVarCount:        0,
+			expectedContainerCount:     2,
+			expectedVolumeCount:        0,
+			expectedVolumeMountCount:   0,
+			expectedHostAliasCount:     0,
+			expectedInitContainerCount: 1,
+		},
+		"versioned1": configExpectation{
+			name:                       "init-containers",
+			version:                    "v2",
+			path:                       fixtureSidecarsDir + "/init-containers-v2.yaml",
+			expectedEnvVarCount:        0,
+			expectedContainerCount:     2,
+			expectedVolumeCount:        0,
+			expectedVolumeMountCount:   0,
+			expectedHostAliasCount:     0,
+			expectedInitContainerCount: 1,
+		},
+		// test that a name with spurious use of ":" returns the expected Name and Version
+		"versioned:with:extra:data:v3": configExpectation{
+			name:                       "init-containers:extra:data",
+			version:                    "v3",
+			path:                       fixtureSidecarsDir + "/init-containers-colons-v3.yaml",
 			expectedEnvVarCount:        0,
 			expectedContainerCount:     2,
 			expectedVolumeCount:        0,
@@ -97,6 +137,14 @@ func TestConfigs(t *testing.T) {
 		}
 		if c.Name != testConfig.name {
 			t.Errorf("expected %s Name loaded from %s but got %s", testConfig.name, testConfig.path, c.Name)
+			t.Fail()
+		}
+		if c.Version() != testConfig.version {
+			t.Errorf("expected %s Version() loaded from %s but got %s", testConfig.version, testConfig.path, c.Version())
+			t.Fail()
+		}
+		if c.FullName() != testConfig.FullName() {
+			t.Errorf("expected FullName() %s loaded from %s but got %s", testConfig.FullName(), testConfig.path, c.FullName())
 			t.Fail()
 		}
 		if len(c.Environment) != testConfig.expectedEnvVarCount {
@@ -146,11 +194,20 @@ func TestGetInjectionConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	i, err := c.GetInjectionConfig(cfg.name)
+	i, err := c.GetInjectionConfig(cfg.FullName())
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	if i.Name != cfg.name {
+		t.Fatalf("expected name %s, but got %s", cfg.name, i.Name)
+	}
+	if i.Version() != cfg.version {
+		t.Fatalf("expected version %s, but got %s", cfg.version, i.Version())
+	}
+	if i.FullName() != cfg.FullName() {
+		t.Fatalf("expected FullName %s, but got %s", cfg.FullName(), i.FullName())
+	}
 	if len(i.Environment) != cfg.expectedEnvVarCount {
 		t.Fatalf("expected %d envvars, but got %d", cfg.expectedEnvVarCount, len(i.Environment))
 	}

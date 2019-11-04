@@ -1,0 +1,4 @@
+name: object7v2
+namespace: unittest
+annotations:
+  "injector.unittest.com/request": "init-containers:v2"

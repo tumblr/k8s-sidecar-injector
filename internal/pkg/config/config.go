@@ -17,6 +17,7 @@ import (
 
 const (
 	annotationNamespaceDefault = "injector.tumblr.com"
+	defaultVersion             = "latest"
 )
 
 var (
@@ -35,6 +36,8 @@ type InjectionConfig struct {
 	VolumeMounts   []corev1.VolumeMount `json:"volumeMounts"`
 	HostAliases    []corev1.HostAlias   `json:"hostAliases"`
 	InitContainers []corev1.Container   `json:"initContainers"`
+
+	version string
 }
 
 // Config is a struct indicating how a given injection should be configured
@@ -46,7 +49,24 @@ type Config struct {
 
 // String returns a string representation of the config
 func (c *InjectionConfig) String() string {
-	return fmt.Sprintf("%s: %d containers, %d init containers, %d volumes, %d environment vars, %d volume mounts, %d host aliases", c.Name, len(c.Containers), len(c.InitContainers), len(c.Volumes), len(c.Environment), len(c.VolumeMounts), len(c.HostAliases))
+	return fmt.Sprintf("%s: %d containers, %d init containers, %d volumes, %d environment vars, %d volume mounts, %d host aliases", c.FullName(), len(c.Containers), len(c.InitContainers), len(c.Volumes), len(c.Environment), len(c.VolumeMounts), len(c.HostAliases))
+}
+
+// Version returns the parsed version of this injection config. If no version is specified,
+// "latest" is returned. The version is extracted from the request annotation, i.e.
+// injector.tumblr.com/request: my-sidecar:1.2, where "1.2" is the version.
+func (c *InjectionConfig) Version() string {
+	if c.version == "" {
+		return defaultVersion
+	}
+
+	return c.version
+}
+
+// FullName returns the full identifier of this sidecar - both the Name, and the Version(), formatted like
+// "${.Name}:${.Version}"
+func (c *InjectionConfig) FullName() string {
+	return canonicalizeConfigName(c.Name, c.Version())
 }
 
 // ReplaceInjectionConfigs will take a list of new InjectionConfigs, and replace the current configuration with them.
@@ -55,8 +75,9 @@ func (c *Config) ReplaceInjectionConfigs(replacementConfigs []*InjectionConfig) 
 	c.Lock()
 	defer c.Unlock()
 	c.Injections = map[string]*InjectionConfig{}
+
 	for _, r := range replacementConfigs {
-		c.Injections[r.Name] = r
+		c.Injections[r.FullName()] = r
 	}
 }
 
@@ -65,7 +86,12 @@ func (c *Config) ReplaceInjectionConfigs(replacementConfigs []*InjectionConfig) 
 func (c *Config) HasInjectionConfig(key string) bool {
 	c.RLock()
 	defer c.RUnlock()
-	_, ok := c.Injections[strings.ToLower(key)]
+
+	name, version := configNameFields(key)
+	fullKey := canonicalizeConfigName(name, version)
+
+	_, ok := c.Injections[fullKey]
+
 	return ok
 }
 
@@ -73,11 +99,15 @@ func (c *Config) HasInjectionConfig(key string) bool {
 func (c *Config) GetInjectionConfig(key string) (*InjectionConfig, error) {
 	c.RLock()
 	defer c.RUnlock()
-	k := strings.ToLower(key)
-	i, ok := c.Injections[k]
+
+	name, version := configNameFields(key)
+	fullKey := canonicalizeConfigName(name, version)
+
+	i, ok := c.Injections[fullKey]
 	if !ok {
-		return nil, fmt.Errorf("no injection config found for annotation %s", key)
+		return nil, fmt.Errorf("no injection config found for annotation %s", fullKey)
 	}
+
 	return i, nil
 }
 
@@ -88,16 +118,19 @@ func LoadConfigDirectory(path string) (*Config, error) {
 	}
 	glob := filepath.Join(path, "*.yaml")
 	matches, err := filepath.Glob(glob)
+
 	if err != nil {
 		return nil, err
 	}
+
 	for _, p := range matches {
 		c, err := LoadInjectionConfigFromFilePath(p)
 		if err != nil {
 			glog.Errorf("Error reading injection config from %s: %v", p, err)
 			return nil, err
 		}
-		cfg.Injections[c.Name] = c
+
+		cfg.Injections[c.FullName()] = c
 	}
 
 	if len(cfg.Injections) == 0 {
@@ -116,11 +149,13 @@ func LoadConfigDirectory(path string) (*Config, error) {
 // LoadInjectionConfigFromFilePath returns a InjectionConfig given a yaml file on disk
 func LoadInjectionConfigFromFilePath(configFile string) (*InjectionConfig, error) {
 	f, err := os.Open(configFile)
-	defer f.Close()
 	if err != nil {
 		return nil, fmt.Errorf("error loading injection config from file %s: %s", configFile, err.Error())
 	}
+
+	defer f.Close()
 	glog.V(3).Infof("Loading injection config from file %s", configFile)
+
 	return LoadInjectionConfig(f)
 }
 
@@ -140,7 +175,33 @@ func LoadInjectionConfig(reader io.Reader) (*InjectionConfig, error) {
 		return nil, ErrMissingName
 	}
 
-	glog.V(3).Infof("Loaded injection config %s sha256sum=%x", cfg.Name, sha256.Sum256(data))
+	// we need to split the Name field apart into a Name and Version component
+	cfg.Name, cfg.version = configNameFields(cfg.Name)
+
+	glog.V(3).Infof("Loaded injection config %s version=%s sha256sum=%x", cfg.Name, cfg.Version(), sha256.Sum256(data))
 
 	return &cfg, nil
+}
+
+// given a name of a config, extract the name and version. Format is "name[:version]" where :version
+// is optional, and is assumed to be "latest" if omitted.
+func configNameFields(shortName string) (name, version string) {
+	substrings := strings.Split(shortName, ":")
+
+	if len(substrings) <= 1 {
+		// no :<version> specified, so assume default version
+		return shortName, defaultVersion
+	}
+
+	versionField := len(substrings) - 1
+
+	if substrings[versionField] == "" {
+		return strings.Join(substrings[:versionField], ":"), defaultVersion
+	}
+
+	return strings.Join(substrings[:versionField], ":"), substrings[versionField]
+}
+
+func canonicalizeConfigName(name, version string) string {
+	return strings.ToLower(fmt.Sprintf("%s:%s", name, version))
 }
