@@ -132,7 +132,8 @@ func (whsvr *WebhookServer) requestAnnotationKey() string {
 	return whsvr.Config.AnnotationNamespace + "/request"
 }
 
-// Check whether the target resoured need to be mutated
+// Check whether the target resoured need to be mutated. returns the canonicalized full name of the injection config
+// if found, or an error if not.
 func (whsvr *WebhookServer) getSidecarConfigurationRequested(ignoredList []string, metadata *metav1.ObjectMeta) (string, error) {
 	// skip special kubernetes system namespaces
 	for _, namespace := range ignoredList {
@@ -162,14 +163,14 @@ func (whsvr *WebhookServer) getSidecarConfigurationRequested(ignoredList []strin
 		glog.Infof("Pod %s/%s annotation %s is missing, skipping injection", metadata.Namespace, metadata.Name, requestAnnotationKey)
 		return "", ErrMissingRequestAnnotation
 	}
-	injectionKey := strings.ToLower(requestedInjection)
-	if !whsvr.Config.HasInjectionConfig(requestedInjection) {
-		glog.Errorf("Mutation policy for pod %s/%s: requested injection %s was not in configuration, skipping", metadata.Namespace, metadata.Name, requestedInjection)
-		return requestedInjection, ErrRequestedSidecarNotFound
+	ic, err := whsvr.Config.GetInjectionConfig(requestedInjection)
+	if err != nil {
+		glog.Errorf("Mutation policy for pod %s/%s: %v", metadata.Namespace, metadata.Name, err)
+		return "", ErrRequestedSidecarNotFound
 	}
 
-	glog.Infof("Pod %s/%s annotation %s=%s requesting sidecar config %s", metadata.Namespace, metadata.Name, requestAnnotationKey, requestedInjection, injectionKey)
-	return injectionKey, nil
+	glog.Infof("Pod %s/%s annotation %s=%s requesting sidecar config %s", metadata.Namespace, metadata.Name, requestAnnotationKey, requestedInjection, ic.FullName())
+	return ic.FullName(), nil
 }
 
 func setEnvironment(target []corev1.Container, addedEnv []corev1.EnvVar) (patch []patchOperation) {
