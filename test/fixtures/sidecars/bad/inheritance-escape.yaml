@@ -1,0 +1,4 @@
+name: inheritance-escape:v1
+
+# try to escape
+inherits: "../../etc/passwd"

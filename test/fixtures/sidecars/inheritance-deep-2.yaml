@@ -1,6 +1,6 @@
 name: inheritance-deep:v2
 
-inherits: "test/fixtures/sidecars/inheritance-1.yaml"
+inherits: "inheritance-1.yaml"
 
 volumes:
   # existing volume

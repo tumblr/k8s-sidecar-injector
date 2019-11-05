@@ -35,7 +35,8 @@ name: "test:v1.2"
 # keys are not blindly replaced, but merged instead.
 # `inherits` is a file on disk to load the parent config from.
 # NOTE: `inherits` is not supported when loading InjectionConfigs from ConfigMap
-inherits: "config/some-sidecar.yaml"
+# NOTE: this is relative to the current file, and does not allow for absolute pathing!
+inherits: "some-sidecar.yaml"
 
 containers:
 # we inject a nginx container

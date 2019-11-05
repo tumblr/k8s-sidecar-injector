@@ -1,6 +1,6 @@
 name: inheritance-complex:v1
 
-inherits: "test/fixtures/sidecars/complex-sidecar.yaml"
+inherits: "complex-sidecar.yaml"
 
 volumes:
   # existing volume

@@ -288,7 +288,12 @@ func LoadInjectionConfigFromFilePath(configFile string) (*InjectionConfig, error
 
 	// Support inheritance from an InjectionConfig loaded from a file on disk
 	if ic.Inherits != "" {
-		base, err := LoadInjectionConfigFromFilePath(ic.Inherits)
+		// all Inherits are relative to the directory the current file is in, and are cleaned
+		// prior to use.
+		basedir := filepath.Dir(filepath.Clean(f.Name()))
+		cleanPath := filepath.Join(basedir, ic.Inherits)
+		base, err := LoadInjectionConfigFromFilePath(cleanPath)
+
 		if err != nil {
 			return nil, err
 		}

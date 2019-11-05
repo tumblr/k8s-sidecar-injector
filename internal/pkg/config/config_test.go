@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"testing"
 
 	testhelper "github.com/tumblr/k8s-sidecar-injector/internal/pkg/testing"
@@ -19,6 +20,14 @@ var (
 		"missing name": testhelper.ConfigExpectation{
 			Path:      fixtureSidecarsDir + "/bad/missing-name.yaml",
 			LoadError: ErrMissingName,
+		},
+		"inheritance filenotfound": testhelper.ConfigExpectation{
+			Path:      fixtureSidecarsDir + "/bad/inheritance-filenotfound.yaml",
+			LoadError: fmt.Errorf(`error loading injection config from file test/fixtures/sidecars/bad/some-missing-file.yaml: open test/fixtures/sidecars/bad/some-missing-file.yaml: no such file or directory`),
+		},
+		"inheritance escape": testhelper.ConfigExpectation{
+			Path:      fixtureSidecarsDir + "/bad/inheritance-escape.yaml",
+			LoadError: fmt.Errorf(`error loading injection config from file test/fixtures/etc/passwd: open test/fixtures/etc/passwd: no such file or directory`),
 		},
 	}
 
@@ -131,11 +140,11 @@ var (
 func TestConfigsLoadErrors(t *testing.T) {
 	for _, testConfig := range testBadConfigs {
 		_, err := LoadInjectionConfigFromFilePath(testConfig.Path)
-		if testConfig.LoadError != err {
-			t.Fatalf("expected %s load to produce error %v but got %v", testConfig.Path, testConfig.LoadError, err)
+		if err == nil || testConfig.LoadError == nil {
+			t.Fatal("error was nil or LoadError was nil - this test should only be testing load errors")
 		}
-		if err == nil {
-			t.Fatalf("error was nil, but %v expected", testConfig.LoadError)
+		if testConfig.LoadError.Error() != err.Error() {
+			t.Fatalf("expected %s load to produce error %v but got %v", testConfig.Path, testConfig.LoadError, err)
 		}
 	}
 }
