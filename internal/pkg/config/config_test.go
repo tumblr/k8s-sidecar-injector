@@ -89,17 +89,14 @@ var (
 			HostAliasCount:     0,
 			InitContainerCount: 1,
 		},
-		// test that a name with spurious use of ":" returns the expected Name and Version
+		// test that a name with spurious use of ":" errors out on load
 		"versioned:with:extra:data:v3": testhelper.ConfigExpectation{
-			Name:               "init-containers:extra:data",
-			Version:            "v3",
-			Path:               fixtureSidecarsDir + "/init-containers-colons-v3.yaml",
-			EnvCount:           0,
-			ContainerCount:     2,
-			VolumeCount:        0,
-			VolumeMountCount:   0,
-			HostAliasCount:     0,
-			InitContainerCount: 1,
+			Path:      fixtureSidecarsDir + "/bad/init-containers-colons-v3.yaml",
+			LoadError: ErrUnsupportedNameVersionFormat,
+		},
+		"missing name": testhelper.ConfigExpectation{
+			Path:      fixtureSidecarsDir + "/bad/missing-name.yaml",
+			LoadError: ErrMissingName,
 		},
 		// test simple inheritance
 		"simple inheritance from complex-sidecar": testhelper.ConfigExpectation{
@@ -132,33 +129,31 @@ var (
 func TestConfigs(t *testing.T) {
 	for _, testConfig := range testConfigs {
 		c, err := LoadInjectionConfigFromFilePath(testConfig.Path)
-		if err != nil {
-			t.Error(err)
-			t.Fail()
+		if testConfig.LoadError != err {
+			t.Fatalf("expected %s load to produce error %v but got %v", testConfig.Path, testConfig.LoadError, err)
+		}
+		if testConfig.LoadError != nil {
+			// if we expected a load error, and we made it here, continue, because we do not need to test
+			// anything about the loaded InjectionConfig
+			continue
 		}
 		if c.Name != testConfig.Name {
-			t.Errorf("expected %s Name loaded from %s but got %s", testConfig.Name, testConfig.Path, c.Name)
-			t.Fail()
+			t.Fatalf("expected %s Name loaded from %s but got %s", testConfig.Name, testConfig.Path, c.Name)
 		}
 		if c.Version() != testConfig.Version {
-			t.Errorf("expected %s Version() loaded from %s but got %s", testConfig.Version, testConfig.Path, c.Version())
-			t.Fail()
+			t.Fatalf("expected %s Version() loaded from %s but got %s", testConfig.Version, testConfig.Path, c.Version())
 		}
 		if c.FullName() != testConfig.FullName() {
-			t.Errorf("expected FullName() %s loaded from %s but got %s", testConfig.FullName(), testConfig.Path, c.FullName())
-			t.Fail()
+			t.Fatalf("expected FullName() %s loaded from %s but got %s", testConfig.FullName(), testConfig.Path, c.FullName())
 		}
 		if len(c.Environment) != testConfig.EnvCount {
-			t.Errorf("expected %d Envs loaded from %s but got %d", testConfig.EnvCount, testConfig.Path, len(c.Environment))
-			t.Fail()
+			t.Fatalf("expected %d Envs loaded from %s but got %d", testConfig.EnvCount, testConfig.Path, len(c.Environment))
 		}
 		if len(c.Containers) != testConfig.ContainerCount {
-			t.Errorf("expected %d Containers loaded from %s but got %d", testConfig.ContainerCount, testConfig.Path, len(c.Containers))
-			t.Fail()
+			t.Fatalf("expected %d Containers loaded from %s but got %d", testConfig.ContainerCount, testConfig.Path, len(c.Containers))
 		}
 		if len(c.Volumes) != testConfig.VolumeCount {
-			t.Errorf("expected %d Volumes loaded from %s but got %d", testConfig.VolumeCount, testConfig.Path, len(c.Volumes))
-			t.Fail()
+			t.Fatalf("expected %d Volumes loaded from %s but got %d", testConfig.VolumeCount, testConfig.Path, len(c.Volumes))
 		}
 		if len(c.VolumeMounts) != testConfig.VolumeMountCount {
 			t.Fatalf("expected %d VolumeMounts loaded from %s but got %d", testConfig.VolumeMountCount, testConfig.Path, len(c.VolumeMounts))

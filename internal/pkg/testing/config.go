@@ -19,6 +19,9 @@ type ConfigExpectation struct {
 	VolumeMountCount   int
 	HostAliasCount     int
 	InitContainerCount int
+
+	// LoadError is an error, if any, that is expected during load
+	LoadError error
 }
 
 func (x *ConfigExpectation) FullName() string {

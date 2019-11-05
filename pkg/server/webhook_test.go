@@ -30,7 +30,7 @@ var (
 	obj6             = "test/fixtures/k8s/object6.yaml"
 	obj7             = "test/fixtures/k8s/object7.yaml"
 	obj7v2           = "test/fixtures/k8s/object7-v2.yaml"
-	obj7v3           = "test/fixtures/k8s/object7-v3.yaml"
+	obj7v3           = "test/fixtures/k8s/object7-badrequestformat.yaml"
 	ignoredNamespace = "test/fixtures/k8s/ignored-namespace-pod.yaml"
 	badSidecar       = "test/fixtures/k8s/bad-sidecar.yaml"
 
@@ -48,7 +48,7 @@ var (
 		{configuration: obj6, expectedSidecar: "host-aliases:latest"},
 		{configuration: obj7, expectedSidecar: "init-containers:latest"},
 		{configuration: obj7v2, expectedSidecar: "init-containers:v2"},
-		{configuration: obj7v3, expectedSidecar: "init-containers:extra:data:v3"},
+		{configuration: obj7v3, expectedSidecar: "", expectedError: config.ErrUnsupportedNameVersionFormat},
 		{configuration: ignoredNamespace, expectedSidecar: "", expectedError: ErrSkipIgnoredNamespace},
 		{configuration: badSidecar, expectedSidecar: "", expectedError: ErrRequestedSidecarNotFound},
 	}
@@ -75,7 +75,7 @@ type mutationTest struct {
 }
 
 func TestLoadConfig(t *testing.T) {
-	expectedNumInjectionConfigs := 10
+	expectedNumInjectionConfigs := 9
 	c, err := config.LoadConfigDirectory(sidecars)
 	if err != nil {
 		t.Fatal(err)
@@ -139,12 +139,10 @@ func TestMutation(t *testing.T) {
 		// load the AdmissionRequest object
 		reqData, err := ioutil.ReadFile(reqFile)
 		if err != nil {
-			t.Errorf("%s: unable to load AdmissionRequest object: %v", reqFile, err)
-			t.Fail()
+			t.Fatalf("%s: unable to load AdmissionRequest object: %v", reqFile, err)
 		}
 		if err := yaml.Unmarshal(reqData, &req); err != nil {
-			t.Errorf("%s: unable to unmarshal AdmissionRequest yaml: %v", reqFile, err)
-			t.Fail()
+			t.Fatalf("%s: unable to unmarshal AdmissionRequest yaml: %v", reqFile, err)
 		}
 
 		// stuff the request into mutate, and catch the response
@@ -155,8 +153,7 @@ func TestMutation(t *testing.T) {
 		res.Patch = nil // zero this field out
 
 		if test.allowed != res.Allowed {
-			t.Errorf("expected AdmissionResponse.Allowed=%v differed from received AdmissionResponse.Allowed=%v", test.allowed, res.Allowed)
-			t.Fail()
+			t.Fatalf("expected AdmissionResponse.Allowed=%v differed from received AdmissionResponse.Allowed=%v", test.allowed, res.Allowed)
 		}
 
 		// diff the JSON patch object with expected JSON loaded from disk
@@ -171,7 +168,7 @@ func TestMutation(t *testing.T) {
 			}
 			difference, diffString := jsondiff.Compare(expectedPatchData, resPatch, &jsondiffopts)
 			if difference != jsondiff.FullMatch {
-				t.Errorf("received AdmissionResponse.patch field differed from expected with %s (%s) (actual on left, expected on right):\n%s", resPatchFile, difference.String(), diffString)
+				t.Fatalf("received AdmissionResponse.patch field differed from expected with %s (%s) (actual on left, expected on right):\n%s", resPatchFile, difference.String(), diffString)
 			}
 
 		}

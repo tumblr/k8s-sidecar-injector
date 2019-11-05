@@ -27,6 +27,8 @@ var (
 	ErrNoConfigurationLoaded = fmt.Errorf(`at least one config must be present in the --config-directory`)
 	// ErrCannotMergeNilInjectionConfig indicates an error trying to merge `nil` into an InjectionConfig
 	ErrCannotMergeNilInjectionConfig = fmt.Errorf("cannot merge nil InjectionConfig")
+	// ErrUnsupportedNameVersionFormat indicates the format of the name is invalid
+	ErrUnsupportedNameVersionFormat = fmt.Errorf(`not a valid name or name:version format`)
 )
 
 // InjectionConfig is a specific instance of a injected config, for a given annotation
@@ -103,7 +105,10 @@ func (c *Config) HasInjectionConfig(key string) bool {
 	c.RLock()
 	defer c.RUnlock()
 
-	name, version := configNameFields(key)
+	name, version, err := configNameFields(key)
+	if err != nil {
+		return false
+	}
 	fullKey := canonicalizeConfigName(name, version)
 
 	_, ok := c.Injections[fullKey]
@@ -116,7 +121,10 @@ func (c *Config) GetInjectionConfig(key string) (*InjectionConfig, error) {
 	c.RLock()
 	defer c.RUnlock()
 
-	name, version := configNameFields(key)
+	name, version, err := configNameFields(key)
+	if err != nil {
+		return nil, err
+	}
 	fullKey := canonicalizeConfigName(name, version)
 
 	i, ok := c.Injections[fullKey]
@@ -308,7 +316,10 @@ func LoadInjectionConfig(reader io.Reader) (*InjectionConfig, error) {
 	}
 
 	// we need to split the Name field apart into a Name and Version component
-	cfg.Name, cfg.version = configNameFields(cfg.Name)
+	cfg.Name, cfg.version, err = configNameFields(cfg.Name)
+	if err != nil {
+		return nil, err
+	}
 
 	glog.V(3).Infof("Loaded injection config %s version=%s sha256sum=%x", cfg.Name, cfg.Version(), sha256.Sum256(data))
 
@@ -317,21 +328,21 @@ func LoadInjectionConfig(reader io.Reader) (*InjectionConfig, error) {
 
 // given a name of a config, extract the name and version. Format is "name[:version]" where :version
 // is optional, and is assumed to be "latest" if omitted.
-func configNameFields(shortName string) (name, version string) {
+func configNameFields(shortName string) (name, version string, err error) {
 	substrings := strings.Split(shortName, ":")
 
-	if len(substrings) <= 1 {
-		// no :<version> specified, so assume default version
-		return shortName, defaultVersion
+	switch len(substrings) {
+	case 1:
+		return substrings[0], defaultVersion, nil
+	case 2:
+		if substrings[1] == "" {
+			return substrings[0], defaultVersion, nil
+		}
+
+		return substrings[0], substrings[1], nil
+	default:
+		return "", "", ErrUnsupportedNameVersionFormat
 	}
-
-	versionField := len(substrings) - 1
-
-	if substrings[versionField] == "" {
-		return strings.Join(substrings[:versionField], ":"), defaultVersion
-	}
-
-	return strings.Join(substrings[:versionField], ":"), substrings[versionField]
 }
 
 func canonicalizeConfigName(name, version string) string {
