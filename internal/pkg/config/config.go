@@ -1,7 +1,6 @@
 package config
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -292,14 +291,22 @@ func LoadInjectionConfigFromFilePath(configFile string) (*InjectionConfig, error
 		// prior to use.
 		basedir := filepath.Dir(filepath.Clean(f.Name()))
 		cleanPath := filepath.Join(basedir, ic.Inherits)
-		base, err := LoadInjectionConfigFromFilePath(cleanPath)
+		glog.V(4).Infof("%s inherits from %s", ic.FullName(), ic.Inherits)
 
+		base, err := LoadInjectionConfigFromFilePath(cleanPath)
 		if err != nil {
 			return nil, err
 		}
 
-		return base, base.Merge(ic)
+		err = base.Merge(ic)
+		if err != nil {
+			return nil, err
+		}
+
+		ic = base
 	}
+
+	glog.V(3).Infof("Loaded injection config %s version=%s", ic.Name, ic.Version())
 
 	return ic, nil
 }
@@ -325,8 +332,6 @@ func LoadInjectionConfig(reader io.Reader) (*InjectionConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	glog.V(3).Infof("Loaded injection config %s version=%s sha256sum=%x", cfg.Name, cfg.Version(), sha256.Sum256(data))
 
 	return &cfg, nil
 }
