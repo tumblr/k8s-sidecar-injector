@@ -48,7 +48,7 @@ var (
 		{configuration: obj6, expectedSidecar: "host-aliases:latest"},
 		{configuration: obj7, expectedSidecar: "init-containers:latest"},
 		{configuration: obj7v2, expectedSidecar: "init-containers:v2"},
-		{configuration: obj7v3, expectedSidecar: "", expectedError: config.ErrUnsupportedNameVersionFormat},
+		{configuration: obj7v3, expectedSidecar: "", expectedError: ErrRequestedSidecarNotFound},
 		{configuration: ignoredNamespace, expectedSidecar: "", expectedError: ErrSkipIgnoredNamespace},
 		{configuration: badSidecar, expectedSidecar: "", expectedError: ErrRequestedSidecarNotFound},
 	}

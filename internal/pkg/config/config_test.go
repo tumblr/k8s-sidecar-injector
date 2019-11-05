@@ -10,8 +10,20 @@ var (
 	// location of the fixture sidecar files
 	fixtureSidecarsDir = "test/fixtures/sidecars"
 
+	testBadConfigs = map[string]testhelper.ConfigExpectation{
+		// test that a name with spurious use of ":" errors out on load
+		"versioned:with:extra:data:v3": testhelper.ConfigExpectation{
+			Path:      fixtureSidecarsDir + "/bad/init-containers-colons-v3.yaml",
+			LoadError: ErrUnsupportedNameVersionFormat,
+		},
+		"missing name": testhelper.ConfigExpectation{
+			Path:      fixtureSidecarsDir + "/bad/missing-name.yaml",
+			LoadError: ErrMissingName,
+		},
+	}
+
 	// test files and expectations
-	testConfigs = map[string]testhelper.ConfigExpectation{
+	testGoodConfigs = map[string]testhelper.ConfigExpectation{
 		"sidecar-test": testhelper.ConfigExpectation{
 			Name:               "sidecar-test",
 			Version:            "latest",
@@ -89,15 +101,6 @@ var (
 			HostAliasCount:     0,
 			InitContainerCount: 1,
 		},
-		// test that a name with spurious use of ":" errors out on load
-		"versioned:with:extra:data:v3": testhelper.ConfigExpectation{
-			Path:      fixtureSidecarsDir + "/bad/init-containers-colons-v3.yaml",
-			LoadError: ErrUnsupportedNameVersionFormat,
-		},
-		"missing name": testhelper.ConfigExpectation{
-			Path:      fixtureSidecarsDir + "/bad/missing-name.yaml",
-			LoadError: ErrMissingName,
-		},
 		// test simple inheritance
 		"simple inheritance from complex-sidecar": testhelper.ConfigExpectation{
 			Name:               "inheritance-complex",
@@ -125,9 +128,21 @@ var (
 	}
 )
 
-// TestConfigs: load configs from filepath and check if we load what we expected
-func TestConfigs(t *testing.T) {
-	for _, testConfig := range testConfigs {
+func TestConfigsLoadErrors(t *testing.T) {
+	for _, testConfig := range testBadConfigs {
+		_, err := LoadInjectionConfigFromFilePath(testConfig.Path)
+		if testConfig.LoadError != err {
+			t.Fatalf("expected %s load to produce error %v but got %v", testConfig.Path, testConfig.LoadError, err)
+		}
+		if err == nil {
+			t.Fatalf("error was nil, but %v expected", testConfig.LoadError)
+		}
+	}
+}
+
+// TestGoodConfigs: load configs from filepath and check if we load what we expected
+func TestGoodConfigs(t *testing.T) {
+	for _, testConfig := range testGoodConfigs {
 		c, err := LoadInjectionConfigFromFilePath(testConfig.Path)
 		if testConfig.LoadError != err {
 			t.Fatalf("expected %s load to produce error %v but got %v", testConfig.Path, testConfig.LoadError, err)
@@ -169,7 +184,7 @@ func TestConfigs(t *testing.T) {
 
 // TestLoadConfig: Check if we get all the configs
 func TestLoadConfig(t *testing.T) {
-	expectedNumInjectionsConfig := len(testConfigs)
+	expectedNumInjectionsConfig := len(testGoodConfigs)
 	c, err := LoadConfigDirectory(fixtureSidecarsDir)
 	if err != nil {
 		t.Fatal(err)
@@ -184,7 +199,7 @@ func TestLoadConfig(t *testing.T) {
 
 // TestFetInjectionConfig: Check if we can properly load a config by name and see if we read the correct values from it
 func TestGetInjectionConfig(t *testing.T) {
-	cfg := testConfigs["sidecar-test"]
+	cfg := testGoodConfigs["sidecar-test"]
 	c, err := LoadConfigDirectory(fixtureSidecarsDir)
 	if err != nil {
 		t.Fatal(err)
