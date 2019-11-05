@@ -12,10 +12,32 @@ A sidecar configuration looks like:
 # annotation, like:
 # "injector.tumblr.com/request=tumblr-php"
 # the "name: tumblr-php" must match a configuration below; 
+
+# "name" identifies this sidecar uniquely to the injector. NOTE: it is an error to load
+# 2 configuration with the same name! You may include version information in the name to disambiguate
+# between newer versions of the same sidecar. For example:
+#   name: my-sidecar:v1.2
+# indicates "my-sidecar" is version "1.2". A request for `injector.tumblr.com/request: my-sidecar:v1.2`
+# will return this configuration. If the version information is omitted, "latest" is assumed.
+# `name: "test"` implies `name: test:latest`.
+# * `injector.tumblr.com/request: my-sidecar` => `my-sidecar:latest`
+# * `injector.tumblr.com/request: my-sidecar:latest` => `my-sidecar:latest`
+# * `injector.tumblr.com/request: my-sidecar:v1.2` => `my-sidecar:v1.2`
+name: "test:v1.2"
+
 # Each InjectionConfig is a struct that adheres to kubernetes' volume and containers
 # spec. Any volumes injected are scoped to the namespace that the
 # resource exists within
-name: "test"
+
+# Optionally, you can inherit from another sidecar configuration. This is useful to reduce
+# duplication in your sidecars. Fields that appear in this config will override and replace
+# fields in the inherited sidecar. We intelligently merge list fields as well, so top level
+# keys are not blindly replaced, but merged instead.
+# `inherits` is a file on disk to load the parent config from.
+# NOTE: `inherits` is not supported when loading InjectionConfigs from ConfigMap
+# NOTE: this is relative to the current file, and does not allow for absolute pathing!
+inherits: "some-sidecar.yaml"
+
 containers:
 # we inject a nginx container
 - name: sidecar-nginx

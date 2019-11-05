@@ -21,13 +21,16 @@ var (
 
 	// all these configs are deserialized into metav1.ObjectMeta structs
 	obj1             = "test/fixtures/k8s/object1.yaml"
-	obj2             = "test/fixtures/k8s/object2.yaml"
+	obj2latest       = "test/fixtures/k8s/object2latest.yaml"
+	obj2v            = "test/fixtures/k8s/object2v.yaml"
 	env1             = "test/fixtures/k8s/env1.yaml"
 	obj3Missing      = "test/fixtures/k8s/object3-missing.yaml"
 	obj4             = "test/fixtures/k8s/object4.yaml"
 	obj5             = "test/fixtures/k8s/object5.yaml"
 	obj6             = "test/fixtures/k8s/object6.yaml"
 	obj7             = "test/fixtures/k8s/object7.yaml"
+	obj7v2           = "test/fixtures/k8s/object7-v2.yaml"
+	obj7v3           = "test/fixtures/k8s/object7-badrequestformat.yaml"
 	ignoredNamespace = "test/fixtures/k8s/ignored-namespace-pod.yaml"
 	badSidecar       = "test/fixtures/k8s/bad-sidecar.yaml"
 
@@ -35,16 +38,19 @@ var (
 
 	// tests to check config loading of sidecars
 	configTests = []expectedSidecarConfiguration{
-		{configuration: obj1, expectedSidecar: "sidecar-test"},
-		{configuration: obj2, expectedSidecar: "complex-sidecar"},
-		{configuration: env1, expectedSidecar: "env1"},
+		{configuration: obj1, expectedSidecar: "sidecar-test:latest"},
+		{configuration: obj2latest, expectedSidecar: "", expectedError: ErrRequestedSidecarNotFound},
+		{configuration: obj2v, expectedSidecar: "complex-sidecar:v420.69"},
+		{configuration: env1, expectedSidecar: "env1:latest"},
 		{configuration: obj3Missing, expectedSidecar: "", expectedError: ErrMissingRequestAnnotation}, // this one is missing any annotations :)
 		{configuration: obj4, expectedSidecar: "", expectedError: ErrSkipAlreadyInjected},             // this one is already injected, so it should not get injected again
-		{configuration: obj5, expectedSidecar: "volume-mounts"},
-		{configuration: obj6, expectedSidecar: "host-aliases"},
-		{configuration: obj7, expectedSidecar: "init-containers"},
+		{configuration: obj5, expectedSidecar: "volume-mounts:latest"},
+		{configuration: obj6, expectedSidecar: "host-aliases:latest"},
+		{configuration: obj7, expectedSidecar: "init-containers:latest"},
+		{configuration: obj7v2, expectedSidecar: "init-containers:v2"},
+		{configuration: obj7v3, expectedSidecar: "", expectedError: ErrRequestedSidecarNotFound},
 		{configuration: ignoredNamespace, expectedSidecar: "", expectedError: ErrSkipIgnoredNamespace},
-		{configuration: badSidecar, expectedSidecar: "this-doesnt-exist", expectedError: ErrRequestedSidecarNotFound},
+		{configuration: badSidecar, expectedSidecar: "", expectedError: ErrRequestedSidecarNotFound},
 	}
 
 	// tests to check the mutate() function for correct operation
@@ -69,20 +75,17 @@ type mutationTest struct {
 }
 
 func TestLoadConfig(t *testing.T) {
-	expectedNumInjectionConfigs := 6
+	expectedNumInjectionConfigs := 9
 	c, err := config.LoadConfigDirectory(sidecars)
 	if err != nil {
-		t.Error(err)
-		t.Fail()
+		t.Fatal(err)
 	}
 	c.AnnotationNamespace = "injector.unittest.com"
 	if len(c.Injections) != expectedNumInjectionConfigs {
-		t.Errorf("expected %d injection configs to be loaded from %s, but got %d", expectedNumInjectionConfigs, sidecars, len(c.Injections))
-		t.Fail()
+		t.Fatalf("expected %d injection configs to be loaded from %s, but got %d", expectedNumInjectionConfigs, sidecars, len(c.Injections))
 	}
 	if c.AnnotationNamespace != "injector.unittest.com" {
-		t.Errorf("expected injector.unittest.com default AnnotationNamespace but got %s", c.AnnotationNamespace)
-		t.Fail()
+		t.Fatalf("expected injector.unittest.com default AnnotationNamespace but got %s", c.AnnotationNamespace)
 	}
 
 	s := &WebhookServer{
@@ -95,23 +98,19 @@ func TestLoadConfig(t *testing.T) {
 	for _, test := range configTests {
 		data, err := ioutil.ReadFile(test.configuration)
 		if err != nil {
-			t.Errorf("unable to load object metadata yaml: %v", err)
-			t.Fail()
+			t.Fatalf("unable to load object metadata yaml: %v", err)
 		}
 
 		var obj *metav1.ObjectMeta
 		if err := yaml.Unmarshal(data, &obj); err != nil {
-			t.Errorf("unable to unmarshal object metadata yaml: %v", err)
-			t.Fail()
+			t.Fatalf("unable to unmarshal object metadata yaml: %v", err)
 		}
 		key, err := s.getSidecarConfigurationRequested(testIgnoredNamespaces, obj)
 		if err != test.expectedError {
-			t.Errorf("%s: error %v did not match %v", test.configuration, err, test.expectedError)
-			t.Fail()
+			t.Fatalf("%s: (expectedSidecar %s) error: %v did not match %v (k %v)", test.configuration, test.expectedSidecar, err, test.expectedError, key)
 		}
 		if key != test.expectedSidecar {
-			t.Errorf("%s: expected sidecar to be %v but was %v instead", test.configuration, test.expectedSidecar, key)
-			t.Fail()
+			t.Fatalf("%s: expected sidecar to be %v but was %v instead", test.configuration, test.expectedSidecar, key)
 		}
 
 	}
@@ -140,12 +139,10 @@ func TestMutation(t *testing.T) {
 		// load the AdmissionRequest object
 		reqData, err := ioutil.ReadFile(reqFile)
 		if err != nil {
-			t.Errorf("%s: unable to load AdmissionRequest object: %v", reqFile, err)
-			t.Fail()
+			t.Fatalf("%s: unable to load AdmissionRequest object: %v", reqFile, err)
 		}
 		if err := yaml.Unmarshal(reqData, &req); err != nil {
-			t.Errorf("%s: unable to unmarshal AdmissionRequest yaml: %v", reqFile, err)
-			t.Fail()
+			t.Fatalf("%s: unable to unmarshal AdmissionRequest yaml: %v", reqFile, err)
 		}
 
 		// stuff the request into mutate, and catch the response
@@ -156,8 +153,7 @@ func TestMutation(t *testing.T) {
 		res.Patch = nil // zero this field out
 
 		if test.allowed != res.Allowed {
-			t.Errorf("expected AdmissionResponse.Allowed=%v differed from received AdmissionResponse.Allowed=%v", test.allowed, res.Allowed)
-			t.Fail()
+			t.Fatalf("expected AdmissionResponse.Allowed=%v differed from received AdmissionResponse.Allowed=%v", test.allowed, res.Allowed)
 		}
 
 		// diff the JSON patch object with expected JSON loaded from disk
@@ -172,7 +168,7 @@ func TestMutation(t *testing.T) {
 			}
 			difference, diffString := jsondiff.Compare(expectedPatchData, resPatch, &jsondiffopts)
 			if difference != jsondiff.FullMatch {
-				t.Errorf("received AdmissionResponse.patch field differed from expected with %s (%s) (actual on left, expected on right):\n%s", resPatchFile, difference.String(), diffString)
+				t.Fatalf("received AdmissionResponse.patch field differed from expected with %s (%s) (actual on left, expected on right):\n%s", resPatchFile, difference.String(), diffString)
 			}
 
 		}

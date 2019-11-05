@@ -1,0 +1,4 @@
+name: object7v3
+namespace: unittest
+annotations:
+  "injector.unittest.com/request": "init-containers:extra:data:v3"
