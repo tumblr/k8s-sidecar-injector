@@ -328,6 +328,15 @@ func addHostAliases(target, added []corev1.HostAlias, basePath string) (patch []
 	return patch
 }
 
+func setServiceAccount(sa string, basePath string) (patch []patchOperation) {
+	patch = append(patch, patchOperation{
+		Op:    "replace",
+		Path:  path.Join(basePath, "serviceAccountName"),
+		Value: sa,
+	})
+	return patch
+}
+
 // for containers, add any env vars that are not already defined in the Env list.
 // this does _not_ return patches; this is intended to be used only on containers defined
 // in the injection config, so the resources do not exist yet in the k8s api (thus no patch needed)
@@ -383,7 +392,7 @@ func updateAnnotations(target map[string]string, added map[string]string) (patch
 			target = map[string]string{}
 			patch = append(patch, patchOperation{
 				Op:    "add",
-				Path:  path.Join("/metadata/annotations/", keyEscaped),
+				Path:  path.Join("/metadata/annotations", keyEscaped),
 				Value: value,
 			})
 		} else {
@@ -422,6 +431,10 @@ func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[s
 	patch = append(patch, addContainers(pod.Spec.InitContainers, mutatedInjectedInitContainers, "/spec/initContainers")...)
 	patch = append(patch, addHostAliases(pod.Spec.HostAliases, inj.HostAliases, "/spec/hostAliases")...)
 	patch = append(patch, addVolumes(pod.Spec.Volumes, inj.Volumes, "/spec/volumes")...)
+	if inj.ServiceAccountName != "" && pod.Spec.ServiceAccountName == "" {
+		// only override the serviceaccount name if not set in the pod spec
+		patch = append(patch, setServiceAccount(inj.ServiceAccountName, "/spec")...)
+	}
 
 	// last but not least, set annotations
 	patch = append(patch, updateAnnotations(pod.Annotations, annotations)...)

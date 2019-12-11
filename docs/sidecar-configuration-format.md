@@ -49,6 +49,14 @@ containers:
     - name: nginx-conf
       mountPath: /etc/nginx
 
+# serviceAccountName is optional - if specified, it will set (but not overwrite an existing!)
+# serviceAccountName field in your pod. Please note, that due to https://github.com/kubernetes/kubernetes/pull/78080
+# if you use this feature on k8s < 1.15.0, your sidecars will not get properly initialized with the associated
+# secret volume mounts for this serviceaccount, due to the ServiceAccountController running before
+# the MutatingWebhookAdmissionController in older versions of k8s, as well as not _rerunning_ after the MWAC to
+# populate volumes on containers that were added by the injector.
+serviceAccountName: "someserviceaccount"
+
 volumes:
 - name: nginx-conf
   configMap:
@@ -97,6 +105,6 @@ In order for the injector to know about a sidecar configuration, you need to eit
 
 1. Create a new InjectionConfiguration `yaml`
   1. Specify your `name:`. This is what you will request with `injector.tumblr.com/request=$name`
-  2. Fill in the `containers`, `volumes`, `volumeMounts`, `hostAliases`, `initContainers` and `env` fields with your configuration you want injected
+  2. Fill in the `containers`, `volumes`, `volumeMounts`, `hostAliases`, `initContainers`, `serviceAccountName`, and `env` fields with your configuration you want injected
 2. Either bake your yaml into your Docker image you run (in `--config-directory=conf/`), or configure it as a ConfigMap in your k8s cluster. See [/docs/configmaps.md](/docs/configmaps.md) for information on how to configure a ConfigMap.
 3. Deploy a pod with annotation `injector.tumblr.com/request=$name`!

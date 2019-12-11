@@ -134,6 +134,18 @@ var (
 			HostAliasCount:     3,
 			InitContainerCount: 2,
 		},
+		"service-account": testhelper.ConfigExpectation{
+			Name:               "service-account",
+			Version:            "latest",
+			Path:               fixtureSidecarsDir + "/service-account.yaml",
+			EnvCount:           0,
+			ContainerCount:     0,
+			VolumeCount:        0,
+			VolumeMountCount:   0,
+			HostAliasCount:     0,
+			InitContainerCount: 0,
+			ServiceAccount:     "fuck",
+		},
 	}
 )
 

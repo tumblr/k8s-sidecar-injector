@@ -19,6 +19,7 @@ type ConfigExpectation struct {
 	VolumeMountCount   int
 	HostAliasCount     int
 	InitContainerCount int
+	ServiceAccount     string
 
 	// LoadError is an error, if any, that is expected during load
 	LoadError error

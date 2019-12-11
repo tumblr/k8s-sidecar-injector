@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
+	"path/filepath"
 	"testing"
 
 	"github.com/ghodss/yaml"
@@ -58,7 +60,11 @@ var (
 		{name: "missing-sidecar-config", allowed: true},
 		{name: "sidecar-test-1", allowed: true},
 		{name: "env-override", allowed: true},
+		{name: "service-account", allowed: true},
+		{name: "service-account-already-set", allowed: true},
 	}
+	sidecarConfigs, _           = filepath.Glob(path.Join(sidecars, "*.yaml"))
+	expectedNumInjectionConfigs = len(sidecarConfigs)
 )
 
 type expectedSidecarConfiguration struct {
@@ -75,7 +81,6 @@ type mutationTest struct {
 }
 
 func TestLoadConfig(t *testing.T) {
-	expectedNumInjectionConfigs := 9
 	c, err := config.LoadConfigDirectory(sidecars)
 	if err != nil {
 		t.Fatal(err)
