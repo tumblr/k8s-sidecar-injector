@@ -7,19 +7,6 @@ import (
 	testhelper "github.com/tumblr/k8s-sidecar-injector/internal/pkg/testing"
 )
 
-// config struct for testing: where to find the file and what we expect to find in it
-type configExpectation struct {
-	name                       string
-	path                       string
-	expectedEnvVarCount        int
-	expectedContainerCount     int
-	expectedVolumeCount        int
-	expectedVolumeMountCount   int
-	expectedHostAliasCount     int
-	expectedInitContainerCount int
-	expectedServiceAccount     string
-}
-
 var (
 	// location of the fixture sidecar files
 	fixtureSidecarsDir = "test/fixtures/sidecars"
