@@ -1,0 +1,45 @@
+name: inheritance-deep:v2
+
+inherits: "inheritance-1.yaml"
+
+volumes:
+  # existing volume
+  - name: foo-config
+    configMap:
+      name: foo-config
+      items:
+      - key: replace-me.yaml
+        path: replace-me.yaml
+  # new volume
+  - name: new-volume-2
+    configMap:
+      name: foo-config
+      items:
+      - key: replace-me.yaml
+        path: replace-me.yaml
+
+hostAliases:
+  - ip: 1.2.3.4
+    hostnames:
+      - some.other-domain.com
+  - ip: 1.2.3.4
+    hostnames:
+      - some.other-domain.com
+env:
+  # existing env var, replace in place
+  - name: DATACENTER
+    value: from-inheritance-deep-2
+  # brand new env var
+  - name: NEW_VAR_DEEP_V2
+    value: from deep v2
+
+containers:
+  # an existing named image
+  - name: foo
+    image: nginx:69.420
+  - name: a-new-image-2
+    image: some-value
+
+initContainers:
+  - name: a-new-image-2
+    image: some-value
