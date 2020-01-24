@@ -59,7 +59,11 @@ func (c *InjectionConfig) String() string {
 		inheritsString = fmt.Sprintf(" (inherits %s)", c.Inherits)
 	}
 
-	return fmt.Sprintf("%s%s: %d containers, %d init containers, %d volumes, %d environment vars, %d volume mounts, %d host aliases",
+	saString := ""
+	if c.ServiceAccountName != "" {
+		saString = fmt.Sprintf(", serviceAccountName %s", c.ServiceAccountName)
+	}
+	return fmt.Sprintf("%s%s: %d containers, %d init containers, %d volumes, %d environment vars, %d volume mounts, %d host aliases%s",
 		c.FullName(),
 		inheritsString,
 		len(c.Containers),
@@ -67,7 +71,8 @@ func (c *InjectionConfig) String() string {
 		len(c.Volumes),
 		len(c.Environment),
 		len(c.VolumeMounts),
-		len(c.HostAliases))
+		len(c.HostAliases),
+		saString)
 }
 
 // Version returns the parsed version of this injection config. If no version is specified,
@@ -263,6 +268,11 @@ func (base *InjectionConfig) Merge(child *InjectionConfig) error {
 		if !contains {
 			base.InitContainers = append(base.InitContainers, cv)
 		}
+	}
+
+	// merge serviceAccount settings to the left
+	if child.ServiceAccountName != "" {
+		base.ServiceAccountName = child.ServiceAccountName
 	}
 
 	return nil
