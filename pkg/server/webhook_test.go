@@ -63,6 +63,7 @@ var (
 		{name: "service-account", allowed: true, patchExpected: true},
 		{name: "service-account-already-set", allowed: true, patchExpected: true},
 		{name: "service-account-set-default", allowed: true, patchExpected: true},
+		{name: "service-account-default-token", allowed: true, patchExpected: true},
 	}
 	sidecarConfigs, _           = filepath.Glob(path.Join(sidecars, "*.yaml"))
 	expectedNumInjectionConfigs = len(sidecarConfigs)

@@ -160,6 +160,22 @@ var (
 			InitContainerCount: 0,
 			ServiceAccount:     "someaccount",
 		},
+		// also, if we inject a serviceAccount and any container has a VolumeMount
+		// with a mountPath of /var/run/secrets/kubernetes.io/serviceaccount, we
+		// must remove it, to allow the ServiceAccountController to inject the
+		// appropriate token volume
+		"service-account-default-token": testhelper.ConfigExpectation{
+			Name:               "service-account-default-token",
+			Version:            "latest",
+			Path:               fixtureSidecarsDir + "/service-account-default-token.yaml",
+			EnvCount:           0,
+			ContainerCount:     0,
+			VolumeCount:        0,
+			VolumeMountCount:   0,
+			HostAliasCount:     0,
+			InitContainerCount: 0,
+			ServiceAccount:     "someaccount",
+		},
 	}
 )
 

@@ -230,27 +230,6 @@ func addContainers(target, added []corev1.Container, basePath string) (patch []p
 	return patch
 }
 
-func addInitContainers(target, added []corev1.Container, basePath string) (patch []patchOperation) {
-	first := len(target) == 0
-	var value interface{}
-	for _, add := range added {
-		value = add
-		path := basePath
-		if first {
-			first = false
-			value = []corev1.Container{add}
-		} else {
-			path = path + "/-"
-		}
-		patch = append(patch, patchOperation{
-			Op:    "add",
-			Path:  path,
-			Value: value,
-		})
-	}
-	return patch
-}
-
 func addVolumes(target, added []corev1.Volume, basePath string) (patch []patchOperation) {
 	first := len(target) == 0
 	var value interface{}
@@ -328,12 +307,39 @@ func addHostAliases(target, added []corev1.HostAlias, basePath string) (patch []
 	return patch
 }
 
-func setServiceAccount(sa string, basePath string) (patch []patchOperation) {
+func setServiceAccount(initContainers []corev1.Container, containers []corev1.Container, sa string, basePath string) (patch []patchOperation) {
 	patch = append(patch, patchOperation{
 		Op:    "replace",
 		Path:  path.Join(basePath, "serviceAccountName"),
 		Value: sa,
 	})
+
+	// if we find any pre-existing VolumeMounts that provide the default serviceaccount token, we need to snip
+	// them out, so the ServiceAccountController will create the correct VolumeMount once we patch this pod
+	// volumeMounts:
+	//  - name: default-token-wlfz2
+	//    readOnly: true
+	//    mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+	for icIndex, ic := range initContainers {
+		for vmIndex, vm := range ic.VolumeMounts {
+			if vm.MountPath == "/var/run/secrets/kubernetes.io/serviceaccount" {
+				patch = append(patch, patchOperation{
+					Op:   "remove",
+					Path: fmt.Sprintf("%s/initContainers/%d/volumeMounts/%d", basePath, icIndex, vmIndex),
+				})
+			}
+		}
+	}
+	for cIndex, c := range containers {
+		for vmIndex, vm := range c.VolumeMounts {
+			if vm.MountPath == "/var/run/secrets/kubernetes.io/serviceaccount" {
+				patch = append(patch, patchOperation{
+					Op:   "remove",
+					Path: fmt.Sprintf("%s/containers/%d/volumeMounts/%d", basePath, cIndex, vmIndex),
+				})
+			}
+		}
+	}
 	return patch
 }
 
@@ -434,7 +440,7 @@ func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[s
 
 	if inj.ServiceAccountName != "" && (pod.Spec.ServiceAccountName == "" || pod.Spec.ServiceAccountName == "default") {
 		// only override the serviceaccount name if not set in the pod spec
-		patch = append(patch, setServiceAccount(inj.ServiceAccountName, "/spec")...)
+		patch = append(patch, setServiceAccount(pod.Spec.InitContainers, pod.Spec.Containers, inj.ServiceAccountName, "/spec")...)
 	}
 
 	// last but not least, set annotations
