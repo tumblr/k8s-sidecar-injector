@@ -144,7 +144,7 @@ var (
 			VolumeMountCount:   0,
 			HostAliasCount:     0,
 			InitContainerCount: 0,
-			ServiceAccount:     "fuck",
+			ServiceAccount:     "someaccount",
 		},
 	}
 )
@@ -199,6 +199,9 @@ func TestGoodConfigs(t *testing.T) {
 		}
 		if len(c.InitContainers) != testConfig.InitContainerCount {
 			t.Fatalf("expected %d InitContainers loaded from %s but got %d", testConfig.InitContainerCount, testConfig.Path, len(c.InitContainers))
+		}
+		if c.ServiceAccountName != testConfig.ServiceAccount {
+			t.Fatalf("expected ServiceAccountName %s, but got %s", testConfig.ServiceAccount, c.ServiceAccountName)
 		}
 	}
 }
@@ -257,5 +260,8 @@ func TestGetInjectionConfig(t *testing.T) {
 	}
 	if len(i.InitContainers) != cfg.InitContainerCount {
 		t.Fatalf("expected %d InitContainers, but got %d", cfg.InitContainerCount, len(i.InitContainers))
+	}
+	if i.ServiceAccountName != cfg.ServiceAccount {
+		t.Fatalf("expected ServiceAccountName %s, but got %s", cfg.ServiceAccount, i.ServiceAccountName)
 	}
 }

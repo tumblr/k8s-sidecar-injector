@@ -431,9 +431,13 @@ func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[s
 	patch = append(patch, addContainers(pod.Spec.InitContainers, mutatedInjectedInitContainers, "/spec/initContainers")...)
 	patch = append(patch, addHostAliases(pod.Spec.HostAliases, inj.HostAliases, "/spec/hostAliases")...)
 	patch = append(patch, addVolumes(pod.Spec.Volumes, inj.Volumes, "/spec/volumes")...)
+
+	glog.Infof("Injection ServiceAccountName=%s pod.Spec.ServiceAccountName=%s pod.Spec.DeprecatedServiceAccount=%s", inj.ServiceAccountName, pod.Spec.ServiceAccountName, pod.Spec.DeprecatedServiceAccount)
 	if inj.ServiceAccountName != "" && (pod.Spec.ServiceAccountName == "" || pod.Spec.ServiceAccountName == "default") {
 		// only override the serviceaccount name if not set in the pod spec
-		patch = append(patch, setServiceAccount(inj.ServiceAccountName, "/spec")...)
+		p := setServiceAccount(inj.ServiceAccountName, "/spec")
+		glog.Infof("Patching serviceAccountName %+v", p)
+		patch = append(patch, p...)
 	}
 
 	// last but not least, set annotations
