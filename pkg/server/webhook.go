@@ -417,6 +417,14 @@ func updateAnnotations(target map[string]string, added map[string]string) (patch
 func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[string]string) ([]byte, error) {
 	var patch []patchOperation
 
+	// be sure to inject the serviceAccountName before adding any volumeMounts, because we must prune out any existing
+	// volumeMounts that were added to support the default service account. Because this removal is by index, we splice
+	// them out before appending new volumes at the end.
+	if inj.ServiceAccountName != "" && (pod.Spec.ServiceAccountName == "" || pod.Spec.ServiceAccountName == "default") {
+		// only override the serviceaccount name if not set in the pod spec
+		patch = append(patch, setServiceAccount(pod.Spec.InitContainers, pod.Spec.Containers, inj.ServiceAccountName, "/spec")...)
+	}
+
 	// first, make sure any injected containers in our config get the EnvVars and VolumeMounts injected
 	// this mutates inj.Containers with our environment vars
 	mutatedInjectedContainers := mergeEnvVars(inj.Environment, inj.Containers)
@@ -438,11 +446,6 @@ func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[s
 	patch = append(patch, addContainers(pod.Spec.InitContainers, mutatedInjectedInitContainers, "/spec/initContainers")...)
 	patch = append(patch, addHostAliases(pod.Spec.HostAliases, inj.HostAliases, "/spec/hostAliases")...)
 	patch = append(patch, addVolumes(pod.Spec.Volumes, inj.Volumes, "/spec/volumes")...)
-
-	if inj.ServiceAccountName != "" && (pod.Spec.ServiceAccountName == "" || pod.Spec.ServiceAccountName == "default") {
-		// only override the serviceaccount name if not set in the pod spec
-		patch = append(patch, setServiceAccount(pod.Spec.InitContainers, pod.Spec.Containers, inj.ServiceAccountName, "/spec")...)
-	}
 
 	// last but not least, set annotations
 	patch = append(patch, updateAnnotations(pod.Annotations, annotations)...)
