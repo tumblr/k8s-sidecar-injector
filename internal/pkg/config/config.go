@@ -266,6 +266,11 @@ func (base *InjectionConfig) Merge(child *InjectionConfig) error {
 		}
 	}
 
+	// merge serviceAccount settings to the left
+	if child.ServiceAccountName != "" {
+		base.ServiceAccountName = child.ServiceAccountName
+	}
+
 	return nil
 }
 

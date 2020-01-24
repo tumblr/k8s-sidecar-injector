@@ -146,6 +146,20 @@ var (
 			InitContainerCount: 0,
 			ServiceAccount:     "someaccount",
 		},
+		// we found that inheritance could cause the loading of the ServiceAccount
+		// to fail, so we test explicitly for this case.
+		"service-account-with-inheritance": testhelper.ConfigExpectation{
+			Name:               "service-account-inherits-env1",
+			Version:            "latest",
+			Path:               fixtureSidecarsDir + "/service-account-with-inheritance.yaml",
+			EnvCount:           3,
+			ContainerCount:     0,
+			VolumeCount:        0,
+			VolumeMountCount:   0,
+			HostAliasCount:     0,
+			InitContainerCount: 0,
+			ServiceAccount:     "someaccount",
+		},
 	}
 )
 
