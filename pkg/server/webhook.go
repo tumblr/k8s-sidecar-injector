@@ -26,9 +26,10 @@ const (
 )
 
 var (
-	runtimeScheme = runtime.NewScheme()
-	codecs        = serializer.NewCodecFactory(runtimeScheme)
-	deserializer  = codecs.UniversalDeserializer()
+	serviceAccountTokenMountPath = "/var/run/secrets/kubernetes.io/serviceaccount"
+	runtimeScheme                = runtime.NewScheme()
+	codecs                       = serializer.NewCodecFactory(runtimeScheme)
+	deserializer                 = codecs.UniversalDeserializer()
 
 	// (https://github.com/kubernetes/kubernetes/issues/57982)
 	defaulter = runtime.ObjectDefaulter(runtimeScheme)
@@ -322,7 +323,7 @@ func setServiceAccount(initContainers []corev1.Container, containers []corev1.Co
 	//    mountPath: /var/run/secrets/kubernetes.io/serviceaccount
 	for icIndex, ic := range initContainers {
 		for vmIndex, vm := range ic.VolumeMounts {
-			if vm.MountPath == "/var/run/secrets/kubernetes.io/serviceaccount" {
+			if vm.MountPath == serviceAccountTokenMountPath {
 				patch = append(patch, patchOperation{
 					Op:   "remove",
 					Path: fmt.Sprintf("%s/initContainers/%d/volumeMounts/%d", basePath, icIndex, vmIndex),
@@ -332,7 +333,7 @@ func setServiceAccount(initContainers []corev1.Container, containers []corev1.Co
 	}
 	for cIndex, c := range containers {
 		for vmIndex, vm := range c.VolumeMounts {
-			if vm.MountPath == "/var/run/secrets/kubernetes.io/serviceaccount" {
+			if vm.MountPath == serviceAccountTokenMountPath {
 				patch = append(patch, patchOperation{
 					Op:   "remove",
 					Path: fmt.Sprintf("%s/containers/%d/volumeMounts/%d", basePath, cIndex, vmIndex),
