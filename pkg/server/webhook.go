@@ -431,7 +431,7 @@ func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[s
 	patch = append(patch, addContainers(pod.Spec.InitContainers, mutatedInjectedInitContainers, "/spec/initContainers")...)
 	patch = append(patch, addHostAliases(pod.Spec.HostAliases, inj.HostAliases, "/spec/hostAliases")...)
 	patch = append(patch, addVolumes(pod.Spec.Volumes, inj.Volumes, "/spec/volumes")...)
-	if inj.ServiceAccountName != "" && pod.Spec.ServiceAccountName == "" {
+	if inj.ServiceAccountName != "" && (pod.Spec.ServiceAccountName == "" || pod.Spec.ServiceAccountName == "default") {
 		// only override the serviceaccount name if not set in the pod spec
 		patch = append(patch, setServiceAccount(inj.ServiceAccountName, "/spec")...)
 	}

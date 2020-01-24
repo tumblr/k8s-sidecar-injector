@@ -57,11 +57,12 @@ var (
 
 	// tests to check the mutate() function for correct operation
 	mutationTests = []mutationTest{
-		{name: "missing-sidecar-config", allowed: true},
-		{name: "sidecar-test-1", allowed: true},
-		{name: "env-override", allowed: true},
-		{name: "service-account", allowed: true},
-		{name: "service-account-already-set", allowed: true},
+		{name: "missing-sidecar-config", allowed: true, patchExpected: false},
+		{name: "sidecar-test-1", allowed: true, patchExpected: true},
+		{name: "env-override", allowed: true, patchExpected: true},
+		{name: "service-account", allowed: true, patchExpected: true},
+		{name: "service-account-already-set", allowed: true, patchExpected: true},
+		{name: "service-account-set-default", allowed: true, patchExpected: true},
 	}
 	sidecarConfigs, _           = filepath.Glob(path.Join(sidecars, "*.yaml"))
 	expectedNumInjectionConfigs = len(sidecarConfigs)
@@ -76,8 +77,9 @@ type expectedSidecarConfiguration struct {
 type mutationTest struct {
 	// name is a file relative to test/fixtures/k8s/admissioncontrol/request/ ending in .yaml
 	//  which is the v1beta1.AdmissionRequest object passed to mutate
-	name    string
-	allowed bool
+	name          string
+	allowed       bool
+	patchExpected bool
 }
 
 func TestLoadConfig(t *testing.T) {
@@ -164,7 +166,10 @@ func TestMutation(t *testing.T) {
 		// diff the JSON patch object with expected JSON loaded from disk
 		// we do this because this is way easier on the eyes than diffing
 		// a yaml base64 encoded string
-		if _, err := os.Stat(resPatchFile); err == nil {
+		if test.patchExpected {
+			if _, err := os.Stat(resPatchFile); err != nil {
+				t.Fatalf("%s: unable to load expected patch JSON response: %v", resPatchFile, err)
+			}
 			t.Logf("Loading patch data from %s...", resPatchFile)
 			expectedPatchData, err := ioutil.ReadFile(resPatchFile)
 			if err != nil {
@@ -175,7 +180,6 @@ func TestMutation(t *testing.T) {
 			if difference != jsondiff.FullMatch {
 				t.Fatalf("received AdmissionResponse.patch field differed from expected with %s (%s) (actual on left, expected on right):\n%s", resPatchFile, difference.String(), diffString)
 			}
-
 		}
 
 	}
