@@ -177,7 +177,7 @@ var (
 			ServiceAccount:     "someaccount",
 		},
 		"maxmind": testhelper.ConfigExpectation{
-			Name:               "maxminddb",
+			Name:               "maxmind",
 			Version:            "latest",
 			Path:               fixtureSidecarsDir + "/maxmind.yaml",
 			EnvCount:           0,
