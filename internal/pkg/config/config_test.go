@@ -176,6 +176,17 @@ var (
 			InitContainerCount: 0,
 			ServiceAccount:     "someaccount",
 		},
+		"maxmind": testhelper.ConfigExpectation{
+			Name:               "maxminddb",
+			Version:            "latest",
+			Path:               fixtureSidecarsDir + "/maxmind.yaml",
+			EnvCount:           0,
+			ContainerCount:     1,
+			VolumeCount:        1,
+			VolumeMountCount:   1,
+			HostAliasCount:     0,
+			InitContainerCount: 1,
+		},
 	}
 )
 

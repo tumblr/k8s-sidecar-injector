@@ -1,0 +1,21 @@
+---
+name: maxmind
+env:
+  - name: EVERYWHERE
+    value: "injected in all containers"
+initContainers:
+  - image: maxmindimage
+    name: maxminddb-init
+    command: ["/bin/init.sh"]
+    env:
+      - name: EVERYWHERE
+        value: already present
+containers:
+  - image: maxmindimage
+    name: maxminddb
+volumes:
+  - name: maxminddb
+    emptyDir: {}
+volumeMounts:
+  - name: maxminddb
+    mountPath: /usr/share/GeoIP

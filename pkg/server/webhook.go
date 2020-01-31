@@ -175,13 +175,13 @@ func (whsvr *WebhookServer) getSidecarConfigurationRequested(ignoredList []strin
 	return ic.FullName(), nil
 }
 
-func setEnvironment(target []corev1.Container, addedEnv []corev1.EnvVar) (patch []patchOperation) {
+func setEnvironment(target []corev1.Container, addedEnv []corev1.EnvVar, basePath string) (patch []patchOperation) {
 	var value interface{}
 	for containerIndex, container := range target {
 		// for each container in the spec, determine if we want to patch with any env vars
 		first := len(container.Env) == 0
 		for _, add := range addedEnv {
-			path := fmt.Sprintf("/spec/containers/%d/env", containerIndex)
+			path := fmt.Sprintf("%s/%d/env", basePath, containerIndex)
 			hasKey := false
 			// make sure we dont override any existing env vars; we only add, dont replace
 			for _, origEnv := range container.Env {
@@ -252,13 +252,13 @@ func addVolumes(target, added []corev1.Volume, basePath string) (patch []patchOp
 	return patch
 }
 
-func addVolumeMounts(target []corev1.Container, addedVolumeMounts []corev1.VolumeMount) (patch []patchOperation) {
+func addVolumeMounts(target []corev1.Container, addedVolumeMounts []corev1.VolumeMount, basePath string) (patch []patchOperation) {
 	var value interface{}
 	for containerIndex, container := range target {
 		// for each container in the spec, determine if we want to patch with any volume mounts
 		first := len(container.VolumeMounts) == 0
 		for _, add := range addedVolumeMounts {
-			path := fmt.Sprintf("/spec/containers/%d/volumeMounts", containerIndex)
+			path := fmt.Sprintf("%s/%d/volumeMounts", basePath, containerIndex)
 			hasKey := false
 			// make sure we dont override any existing volume mounts; we only add, dont replace
 			for _, origVolumeMount := range container.VolumeMounts {
@@ -425,27 +425,33 @@ func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[s
 		patch = append(patch, setServiceAccount(pod.Spec.InitContainers, pod.Spec.Containers, inj.ServiceAccountName, "/spec")...)
 	}
 
-	// first, make sure any injected containers in our config get the EnvVars and VolumeMounts injected
-	// this mutates inj.Containers with our environment vars
-	mutatedInjectedContainers := mergeEnvVars(inj.Environment, inj.Containers)
-	mutatedInjectedContainers = mergeVolumeMounts(inj.VolumeMounts, mutatedInjectedContainers)
+	{ // initcontainer injections
+		// patch all existing InitContainers with the VolumeMounts+EnvVars, and add injected initcontainers
+		patch = append(patch, setEnvironment(pod.Spec.InitContainers, inj.Environment, "/spec/initContainers")...)
+		patch = append(patch, addVolumeMounts(pod.Spec.InitContainers, inj.VolumeMounts, "/spec/initContainers")...)
+		// next, make sure any injected init containers in our config get the EnvVars and VolumeMounts injected
+		// this mutates inj.InitContainers with our environment vars
+		mutatedInjectedInitContainers := mergeEnvVars(inj.Environment, inj.InitContainers)
+		mutatedInjectedInitContainers = mergeVolumeMounts(inj.VolumeMounts, mutatedInjectedInitContainers)
+		patch = append(patch, addContainers(pod.Spec.InitContainers, mutatedInjectedInitContainers, "/spec/initContainers")...)
+	}
 
-	// next, make sure any injected init containers in our config get the EnvVars and VolumeMounts injected
-	// this mutates inj.InitContainers with our environment vars
-	mutatedInjectedInitContainers := mergeEnvVars(inj.Environment, inj.InitContainers)
-	mutatedInjectedInitContainers = mergeVolumeMounts(inj.VolumeMounts, mutatedInjectedInitContainers)
+	{ // container injections
+		// now, patch all existing containers with the env vars and volume mounts, and add injected containers
+		patch = append(patch, setEnvironment(pod.Spec.Containers, inj.Environment, "/spec/containers")...)
+		patch = append(patch, addVolumeMounts(pod.Spec.Containers, inj.VolumeMounts, "/spec/containers")...)
+		// first, make sure any injected containers in our config get the EnvVars and VolumeMounts injected
+		// this mutates inj.Containers with our environment vars
+		mutatedInjectedContainers := mergeEnvVars(inj.Environment, inj.Containers)
+		mutatedInjectedContainers = mergeVolumeMounts(inj.VolumeMounts, mutatedInjectedContainers)
+		patch = append(patch, addContainers(pod.Spec.Containers, mutatedInjectedContainers, "/spec/containers")...)
+	}
 
-	// next, patch containers with our injected containers
-	patch = append(patch, addContainers(pod.Spec.Containers, mutatedInjectedContainers, "/spec/containers")...)
-
-	// now, patch all existing containers with the env vars and volume mounts
-	patch = append(patch, setEnvironment(pod.Spec.Containers, inj.Environment)...)
-	patch = append(patch, addVolumeMounts(pod.Spec.Containers, inj.VolumeMounts)...)
-
-	// now, add initContainers, hostAliases and volumes
-	patch = append(patch, addContainers(pod.Spec.InitContainers, mutatedInjectedInitContainers, "/spec/initContainers")...)
-	patch = append(patch, addHostAliases(pod.Spec.HostAliases, inj.HostAliases, "/spec/hostAliases")...)
-	patch = append(patch, addVolumes(pod.Spec.Volumes, inj.Volumes, "/spec/volumes")...)
+	{ // pod level mutations
+		// now, add hostAliases and volumes
+		patch = append(patch, addHostAliases(pod.Spec.HostAliases, inj.HostAliases, "/spec/hostAliases")...)
+		patch = append(patch, addVolumes(pod.Spec.Volumes, inj.Volumes, "/spec/volumes")...)
+	}
 
 	// last but not least, set annotations
 	patch = append(patch, updateAnnotations(pod.Annotations, annotations)...)
