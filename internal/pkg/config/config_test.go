@@ -180,7 +180,7 @@ var (
 			Name:               "maxmind",
 			Version:            "latest",
 			Path:               fixtureSidecarsDir + "/maxmind.yaml",
-			EnvCount:           0,
+			EnvCount:           1,
 			ContainerCount:     1,
 			VolumeCount:        1,
 			VolumeMountCount:   1,
