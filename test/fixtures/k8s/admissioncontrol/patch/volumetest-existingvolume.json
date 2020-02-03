@@ -39,7 +39,7 @@
          "env" : [
             {
                "name" : "EVERYWHERE",
-               "value" : "already present"
+               "value" : "injected in all containers"
             }
          ],
          "image" : "maxmindimage",
@@ -109,7 +109,7 @@
       "path" : "/spec/volumes/-",
       "value" : {
             "emptyDir" : {},
-            "name" : "hell"
+            "name" : "anothervolume"
          }
    },
    {
