@@ -182,7 +182,7 @@ var (
 			Path:               fixtureSidecarsDir + "/maxmind.yaml",
 			EnvCount:           1,
 			ContainerCount:     1,
-			VolumeCount:        1,
+			VolumeCount:        2,
 			VolumeMountCount:   1,
 			HostAliasCount:     0,
 			InitContainerCount: 1,
