@@ -7,14 +7,13 @@ initContainers:
   - image: maxmindimage
     name: maxminddb-init
     command: ["/bin/init.sh"]
-    env:
-      - name: EVERYWHERE
-        value: already present
 containers:
   - image: maxmindimage
     name: maxminddb
 volumes:
   - name: maxminddb
+    emptyDir: {}
+  - name: anothervolume
     emptyDir: {}
 volumeMounts:
   - name: maxminddb

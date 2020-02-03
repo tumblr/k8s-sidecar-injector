@@ -106,6 +106,14 @@
    },
    {
       "op" : "add",
+      "path" : "/spec/volumes/-",
+      "value" : {
+            "emptyDir" : {},
+            "name" : "hell"
+         }
+   },
+   {
+      "op" : "add",
       "path" : "/metadata/annotations/injector.unittest.com~1status",
       "value" : "injected"
    }

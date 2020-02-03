@@ -58,15 +58,13 @@
    },
    {
       "op" : "add",
-      "path" : "/spec/volumes",
-      "value" : [
-         {
-            "configMap" : {
-               "name" : "nginx-configmap"
-            },
-            "name" : "nginx-conf"
-         }
-      ]
+      "path" : "/spec/volumes/-",
+      "value" : {
+          "configMap" : {
+             "name" : "nginx-configmap"
+          },
+          "name" : "nginx-conf"
+       }
    },
    {
       "op" : "add",

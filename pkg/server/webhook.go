@@ -231,21 +231,26 @@ func addContainers(target, added []corev1.Container, basePath string) (patch []p
 	return patch
 }
 
-func addVolumes(target, added []corev1.Volume, basePath string) (patch []patchOperation) {
-	first := len(target) == 0
-	var value interface{}
+func addVolumes(existing, added []corev1.Volume, basePath string) (patch []patchOperation) {
+	hasVolume := func(existing []corev1.Volume, add corev1.Volume) bool {
+		for _, v := range existing {
+			// if any of the existing volumes have the same name as test.Name, skip
+			// injecting it
+			if v.Name == add.Name {
+				return true
+			}
+		}
+		return false
+	}
 	for _, add := range added {
-		value = add
-		path := basePath
-		if first {
-			first = false
-			value = []corev1.Volume{add}
-		} else {
-			path = path + "/-"
+		value := add
+
+		if hasVolume(existing, add) {
+			continue
 		}
 		patch = append(patch, patchOperation{
 			Op:    "add",
-			Path:  path,
+			Path:  basePath + "/-",
 			Value: value,
 		})
 	}
@@ -348,21 +353,25 @@ func setServiceAccount(initContainers []corev1.Container, containers []corev1.Co
 // this does _not_ return patches; this is intended to be used only on containers defined
 // in the injection config, so the resources do not exist yet in the k8s api (thus no patch needed)
 func mergeEnvVars(envs []corev1.EnvVar, containers []corev1.Container) []corev1.Container {
+	hasEnvVar := func(existing []corev1.EnvVar, add corev1.EnvVar) bool {
+		for _, v := range existing {
+			// if any of the existing volumes have the same name as test.Name, skip
+			// injecting it
+			if v.Name == add.Name {
+				return true
+			}
+		}
+		return false
+	}
 	mutatedContainers := []corev1.Container{}
 	for _, c := range containers {
 		for _, newEnv := range envs {
 			// check each container for each env var by name.
 			// if the container has a matching name, dont override!
-			skip := false
-			for _, origEnv := range c.Env {
-				if origEnv.Name == newEnv.Name {
-					skip = true
-					break
-				}
+			if hasEnvVar(c.Env, newEnv) {
+				continue
 			}
-			if !skip {
-				c.Env = append(c.Env, newEnv)
-			}
+			c.Env = append(c.Env, newEnv)
 		}
 		mutatedContainers = append(mutatedContainers, c)
 	}

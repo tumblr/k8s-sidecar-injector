@@ -39,7 +39,7 @@
          "env" : [
             {
                "name" : "EVERYWHERE",
-               "value" : "already present"
+               "value" : "injected in all containers"
             }
          ],
          "image" : "maxmindimage",
@@ -106,13 +106,19 @@
    },
    {
       "op" : "add",
-      "path" : "/spec/volumes",
-      "value" : [
-         {
-            "emptyDir" : {},
-            "name" : "maxminddb"
-         }
-      ]
+      "path" : "/spec/volumes/-",
+      "value" : {
+         "emptyDir" : {},
+         "name" : "maxminddb"
+      }
+   },
+   {
+      "op" : "add",
+      "path" : "/spec/volumes/-",
+      "value" : {
+         "emptyDir" : {},
+         "name" : "anothervolume"
+      }
    },
    {
       "op" : "add",
