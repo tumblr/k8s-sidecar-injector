@@ -65,6 +65,7 @@ var (
 		{name: "service-account-set-default", allowed: true, patchExpected: true},
 		{name: "service-account-default-token", allowed: true, patchExpected: true},
 		{name: "volumetest", allowed: true, patchExpected: true},
+		{name: "volumetest-existingvolume", allowed: true, patchExpected: true},
 	}
 	sidecarConfigs, _           = filepath.Glob(path.Join(sidecars, "*.yaml"))
 	expectedNumInjectionConfigs = len(sidecarConfigs)
