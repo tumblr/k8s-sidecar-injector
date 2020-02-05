@@ -1,0 +1,128 @@
+[
+   {
+      "op" : "add",
+      "path" : "/spec/initContainers/0/env",
+      "value" : [
+         {
+            "name" : "EVERYWHERE",
+            "value" : "injected in all containers"
+         }
+      ]
+   },
+   {
+      "op" : "add",
+      "path" : "/spec/initContainers/1/env",
+      "value" : [
+         {
+            "name" : "EVERYWHERE",
+            "value" : "injected in all containers"
+         }
+      ]
+   },
+   {
+      "op" : "add",
+      "path" : "/spec/initContainers/0/volumeMounts",
+      "value" : [
+         {
+            "mountPath" : "/usr/share/GeoIP",
+            "name" : "maxminddb"
+         }
+      ]
+   },
+   {
+      "op" : "add",
+      "path" : "/spec/initContainers/-",
+      "value" : {
+         "command" : [
+            "/bin/init.sh"
+         ],
+         "env" : [
+            {
+               "name" : "EVERYWHERE",
+               "value" : "injected in all containers"
+            }
+         ],
+         "image" : "maxmindimage",
+         "name" : "maxminddb-init",
+         "resources" : {},
+         "volumeMounts" : [
+            {
+               "mountPath" : "/usr/share/GeoIP",
+               "name" : "maxminddb"
+            }
+         ]
+      }
+   },
+   {
+      "op" : "add",
+      "path" : "/spec/containers/0/env",
+      "value" : [
+         {
+            "name" : "EVERYWHERE",
+            "value" : "injected in all containers"
+         }
+      ]
+   },
+   {
+      "op" : "add",
+      "path" : "/spec/containers/1/env",
+      "value" : [
+         {
+            "name" : "EVERYWHERE",
+            "value" : "injected in all containers"
+         }
+      ]
+   },
+   {
+      "op" : "add",
+      "path" : "/spec/containers/1/volumeMounts",
+      "value" : [
+         {
+            "mountPath" : "/usr/share/GeoIP",
+            "name" : "maxminddb"
+         }
+      ]
+   },
+   {
+      "op" : "add",
+      "path" : "/spec/containers/-",
+      "value" : {
+         "env" : [
+            {
+               "name" : "EVERYWHERE",
+               "value" : "injected in all containers"
+            }
+         ],
+         "image" : "maxmindimage",
+         "name" : "maxminddb",
+         "resources" : {},
+         "volumeMounts" : [
+            {
+               "mountPath" : "/usr/share/GeoIP",
+               "name" : "maxminddb"
+            }
+         ]
+      }
+   },
+   {
+      "op" : "add",
+      "path" : "/spec/volumes/-",
+      "value" : {
+         "emptyDir" : {},
+         "name" : "maxminddb"
+      }
+   },
+   {
+      "op" : "add",
+      "path" : "/spec/volumes/-",
+      "value" : {
+         "emptyDir" : {},
+         "name" : "anothervolume"
+      }
+   },
+   {
+      "op" : "add",
+      "path" : "/metadata/annotations/injector.unittest.com~1status",
+      "value" : "injected"
+   }
+]

@@ -64,6 +64,8 @@ var (
 		{name: "service-account-already-set", allowed: true, patchExpected: true},
 		{name: "service-account-set-default", allowed: true, patchExpected: true},
 		{name: "service-account-default-token", allowed: true, patchExpected: true},
+		{name: "volumetest", allowed: true, patchExpected: true},
+		{name: "volumetest-existingvolume", allowed: true, patchExpected: true},
 	}
 	sidecarConfigs, _           = filepath.Glob(path.Join(sidecars, "*.yaml"))
 	expectedNumInjectionConfigs = len(sidecarConfigs)
@@ -179,6 +181,7 @@ func TestMutation(t *testing.T) {
 			}
 			difference, diffString := jsondiff.Compare(expectedPatchData, resPatch, &jsondiffopts)
 			if difference != jsondiff.FullMatch {
+				t.Errorf("Actual patch JSON: %s", string(resPatch))
 				t.Fatalf("received AdmissionResponse.patch field differed from expected with %s (%s) (actual on left, expected on right):\n%s", resPatchFile, difference.String(), diffString)
 			}
 		}
