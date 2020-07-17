@@ -5,6 +5,7 @@ TLS_PORT="${TLS_PORT:-9443}"
 CONFIG_DIR="${CONFIG_DIR:-/conf}"
 TLS_CERT_FILE="${TLS_CERT_FILE:-/var/lib/secrets/cert.crt}"
 TLS_KEY_FILE="${TLS_KEY_FILE:-/var/lib/secrets/cert.key}"
+ANNOTATION_NAMESPACE="${ANNOTATION_NAMESPACE:-injector.tumblr.com}"
 CONFIGMAP_LABELS="${CONFIGMAP_LABELS:-app=k8s-sidecar-injector}"
 CONFIGMAP_NAMESPACE="${CONFIGMAP_NAMESPACE:-}"
 ANNOTATION_NAMESPACE="${ANNOTATION_NAMESPACE:-injector.tumblr.com}"
@@ -15,6 +16,7 @@ exec k8s-sidecar-injector \
   --v="${LOG_LEVEL}" \
   --lifecycle-port="${LIFECYCLE_PORT}" \
   --tls-port="${TLS_PORT}" \
+  --annotation-namespace="${ANNOTATION_NAMESPACE}" \
   --config-directory="${CONFIG_DIR}" \
   --tls-cert-file="${TLS_CERT_FILE}" \
   --tls-key-file="${TLS_KEY_FILE}" \
