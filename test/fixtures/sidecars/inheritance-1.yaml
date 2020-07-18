@@ -1,0 +1,42 @@
+name: inheritance-complex:v1
+
+inherits: "complex-sidecar.yaml"
+
+volumes:
+  # existing volume
+  - name: foo-config
+    configMap:
+      name: foo-config
+      items:
+      - key: replace-me.yaml
+        path: replace-me.yaml
+  # new volume
+  - name: new-volume
+    configMap:
+      name: foo-config
+      items:
+      - key: replace-me.yaml
+        path: replace-me.yaml
+
+hostAliases:
+  - ip: 1.2.3.4
+    hostnames:
+      - some.other-domain.com
+env:
+  # existing env var, replace in place
+  - name: DATACENTER
+    value: new value, existing envvar
+  # brand new env var
+  - name: NEW_VARIABLE
+    value: test
+
+containers:
+  # an existing named image
+  - name: foo
+    image: nginx:69.420
+  - name: a-new-image
+    image: some-value
+
+initContainers:
+  - name: a-new-image
+    image: some-value

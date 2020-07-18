@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"path"
 	"strings"
 
 	"github.com/golang/glog"
@@ -25,9 +26,10 @@ const (
 )
 
 var (
-	runtimeScheme = runtime.NewScheme()
-	codecs        = serializer.NewCodecFactory(runtimeScheme)
-	deserializer  = codecs.UniversalDeserializer()
+	serviceAccountTokenMountPath = "/var/run/secrets/kubernetes.io/serviceaccount"
+	runtimeScheme                = runtime.NewScheme()
+	codecs                       = serializer.NewCodecFactory(runtimeScheme)
+	deserializer                 = codecs.UniversalDeserializer()
 
 	// (https://github.com/kubernetes/kubernetes/issues/57982)
 	defaulter = runtime.ObjectDefaulter(runtimeScheme)
@@ -132,7 +134,8 @@ func (whsvr *WebhookServer) requestAnnotationKey() string {
 	return whsvr.Config.AnnotationNamespace + "/request"
 }
 
-// Check whether the target resoured need to be mutated
+// Check whether the target resoured need to be mutated. returns the canonicalized full name of the injection config
+// if found, or an error if not.
 func (whsvr *WebhookServer) getSidecarConfigurationRequested(ignoredList []string, metadata *metav1.ObjectMeta) (string, error) {
 	// skip special kubernetes system namespaces
 	for _, namespace := range ignoredList {
@@ -162,23 +165,23 @@ func (whsvr *WebhookServer) getSidecarConfigurationRequested(ignoredList []strin
 		glog.Infof("Pod %s/%s annotation %s is missing, skipping injection", metadata.Namespace, metadata.Name, requestAnnotationKey)
 		return "", ErrMissingRequestAnnotation
 	}
-	injectionKey := strings.ToLower(requestedInjection)
-	if !whsvr.Config.HasInjectionConfig(requestedInjection) {
-		glog.Errorf("Mutation policy for pod %s/%s: requested injection %s was not in configuration, skipping", metadata.Namespace, metadata.Name, requestedInjection)
-		return requestedInjection, ErrRequestedSidecarNotFound
+	ic, err := whsvr.Config.GetInjectionConfig(requestedInjection)
+	if err != nil {
+		glog.Errorf("Mutation policy for pod %s/%s: %v", metadata.Namespace, metadata.Name, err)
+		return "", ErrRequestedSidecarNotFound
 	}
 
-	glog.Infof("Pod %s/%s annotation %s=%s requesting sidecar config %s", metadata.Namespace, metadata.Name, requestAnnotationKey, requestedInjection, injectionKey)
-	return injectionKey, nil
+	glog.Infof("Pod %s/%s annotation %s=%s requesting sidecar config %s", metadata.Namespace, metadata.Name, requestAnnotationKey, requestedInjection, ic.FullName())
+	return ic.FullName(), nil
 }
 
-func setEnvironment(target []corev1.Container, addedEnv []corev1.EnvVar) (patch []patchOperation) {
+func setEnvironment(target []corev1.Container, addedEnv []corev1.EnvVar, basePath string) (patch []patchOperation) {
 	var value interface{}
 	for containerIndex, container := range target {
 		// for each container in the spec, determine if we want to patch with any env vars
 		first := len(container.Env) == 0
 		for _, add := range addedEnv {
-			path := fmt.Sprintf("/spec/containers/%d/env", containerIndex)
+			path := fmt.Sprintf("%s/%d/env", basePath, containerIndex)
 			hasKey := false
 			// make sure we dont override any existing env vars; we only add, dont replace
 			for _, origEnv := range container.Env {
@@ -228,55 +231,39 @@ func addContainers(target, added []corev1.Container, basePath string) (patch []p
 	return patch
 }
 
-func addInitContainers(target, added []corev1.Container, basePath string) (patch []patchOperation) {
-	first := len(target) == 0
-	var value interface{}
+func addVolumes(existing, added []corev1.Volume, basePath string) (patch []patchOperation) {
+	hasVolume := func(existing []corev1.Volume, add corev1.Volume) bool {
+		for _, v := range existing {
+			// if any of the existing volumes have the same name as test.Name, skip
+			// injecting it
+			if v.Name == add.Name {
+				return true
+			}
+		}
+		return false
+	}
 	for _, add := range added {
-		value = add
-		path := basePath
-		if first {
-			first = false
-			value = []corev1.Container{add}
-		} else {
-			path = path + "/-"
+		value := add
+
+		if hasVolume(existing, add) {
+			continue
 		}
 		patch = append(patch, patchOperation{
 			Op:    "add",
-			Path:  path,
+			Path:  basePath + "/-",
 			Value: value,
 		})
 	}
 	return patch
 }
 
-func addVolumes(target, added []corev1.Volume, basePath string) (patch []patchOperation) {
-	first := len(target) == 0
-	var value interface{}
-	for _, add := range added {
-		value = add
-		path := basePath
-		if first {
-			first = false
-			value = []corev1.Volume{add}
-		} else {
-			path = path + "/-"
-		}
-		patch = append(patch, patchOperation{
-			Op:    "add",
-			Path:  path,
-			Value: value,
-		})
-	}
-	return patch
-}
-
-func addVolumeMounts(target []corev1.Container, addedVolumeMounts []corev1.VolumeMount) (patch []patchOperation) {
+func addVolumeMounts(target []corev1.Container, addedVolumeMounts []corev1.VolumeMount, basePath string) (patch []patchOperation) {
 	var value interface{}
 	for containerIndex, container := range target {
 		// for each container in the spec, determine if we want to patch with any volume mounts
 		first := len(container.VolumeMounts) == 0
 		for _, add := range addedVolumeMounts {
-			path := fmt.Sprintf("/spec/containers/%d/volumeMounts", containerIndex)
+			path := fmt.Sprintf("%s/%d/volumeMounts", basePath, containerIndex)
 			hasKey := false
 			// make sure we dont override any existing volume mounts; we only add, dont replace
 			for _, origVolumeMount := range container.VolumeMounts {
@@ -326,25 +313,65 @@ func addHostAliases(target, added []corev1.HostAlias, basePath string) (patch []
 	return patch
 }
 
+func setServiceAccount(initContainers []corev1.Container, containers []corev1.Container, sa string, basePath string) (patch []patchOperation) {
+	patch = append(patch, patchOperation{
+		Op:    "replace",
+		Path:  path.Join(basePath, "serviceAccountName"),
+		Value: sa,
+	})
+
+	// if we find any pre-existing VolumeMounts that provide the default serviceaccount token, we need to snip
+	// them out, so the ServiceAccountController will create the correct VolumeMount once we patch this pod
+	// volumeMounts:
+	//  - name: default-token-wlfz2
+	//    readOnly: true
+	//    mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+	for icIndex, ic := range initContainers {
+		for vmIndex, vm := range ic.VolumeMounts {
+			if vm.MountPath == serviceAccountTokenMountPath {
+				patch = append(patch, patchOperation{
+					Op:   "remove",
+					Path: fmt.Sprintf("%s/initContainers/%d/volumeMounts/%d", basePath, icIndex, vmIndex),
+				})
+			}
+		}
+	}
+	for cIndex, c := range containers {
+		for vmIndex, vm := range c.VolumeMounts {
+			if vm.MountPath == serviceAccountTokenMountPath {
+				patch = append(patch, patchOperation{
+					Op:   "remove",
+					Path: fmt.Sprintf("%s/containers/%d/volumeMounts/%d", basePath, cIndex, vmIndex),
+				})
+			}
+		}
+	}
+	return patch
+}
+
 // for containers, add any env vars that are not already defined in the Env list.
 // this does _not_ return patches; this is intended to be used only on containers defined
 // in the injection config, so the resources do not exist yet in the k8s api (thus no patch needed)
 func mergeEnvVars(envs []corev1.EnvVar, containers []corev1.Container) []corev1.Container {
+	hasEnvVar := func(existing []corev1.EnvVar, add corev1.EnvVar) bool {
+		for _, v := range existing {
+			// if any of the existing volumes have the same name as test.Name, skip
+			// injecting it
+			if v.Name == add.Name {
+				return true
+			}
+		}
+		return false
+	}
 	mutatedContainers := []corev1.Container{}
 	for _, c := range containers {
 		for _, newEnv := range envs {
 			// check each container for each env var by name.
 			// if the container has a matching name, dont override!
-			skip := false
-			for _, origEnv := range c.Env {
-				if origEnv.Name == newEnv.Name {
-					skip = true
-					break
-				}
+			if hasEnvVar(c.Env, newEnv) {
+				continue
 			}
-			if !skip {
-				c.Env = append(c.Env, newEnv)
-			}
+			c.Env = append(c.Env, newEnv)
 		}
 		mutatedContainers = append(mutatedContainers, c)
 	}
@@ -381,13 +408,13 @@ func updateAnnotations(target map[string]string, added map[string]string) (patch
 			target = map[string]string{}
 			patch = append(patch, patchOperation{
 				Op:    "add",
-				Path:  "/metadata/annotations/" + keyEscaped,
+				Path:  path.Join("/metadata/annotations", keyEscaped),
 				Value: value,
 			})
 		} else {
 			patch = append(patch, patchOperation{
 				Op:    "replace",
-				Path:  "/metadata/annotations/" + keyEscaped,
+				Path:  path.Join("/metadata/annotations", keyEscaped),
 				Value: value,
 			})
 		}
@@ -399,27 +426,41 @@ func updateAnnotations(target map[string]string, added map[string]string) (patch
 func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[string]string) ([]byte, error) {
 	var patch []patchOperation
 
-	// first, make sure any injected containers in our config get the EnvVars and VolumeMounts injected
-	// this mutates inj.Containers with our environment vars
-	mutatedInjectedContainers := mergeEnvVars(inj.Environment, inj.Containers)
-	mutatedInjectedContainers = mergeVolumeMounts(inj.VolumeMounts, mutatedInjectedContainers)
+	// be sure to inject the serviceAccountName before adding any volumeMounts, because we must prune out any existing
+	// volumeMounts that were added to support the default service account. Because this removal is by index, we splice
+	// them out before appending new volumes at the end.
+	if inj.ServiceAccountName != "" && (pod.Spec.ServiceAccountName == "" || pod.Spec.ServiceAccountName == "default") {
+		// only override the serviceaccount name if not set in the pod spec
+		patch = append(patch, setServiceAccount(pod.Spec.InitContainers, pod.Spec.Containers, inj.ServiceAccountName, "/spec")...)
+	}
 
-	// next, make sure any injected init containers in our config get the EnvVars and VolumeMounts injected
-	// this mutates inj.InitContainers with our environment vars
-	mutatedInjectedInitContainers := mergeEnvVars(inj.Environment, inj.InitContainers)
-	mutatedInjectedInitContainers = mergeVolumeMounts(inj.VolumeMounts, mutatedInjectedInitContainers)
+	{ // initcontainer injections
+		// patch all existing InitContainers with the VolumeMounts+EnvVars, and add injected initcontainers
+		patch = append(patch, setEnvironment(pod.Spec.InitContainers, inj.Environment, "/spec/initContainers")...)
+		patch = append(patch, addVolumeMounts(pod.Spec.InitContainers, inj.VolumeMounts, "/spec/initContainers")...)
+		// next, make sure any injected init containers in our config get the EnvVars and VolumeMounts injected
+		// this mutates inj.InitContainers with our environment vars
+		mutatedInjectedInitContainers := mergeEnvVars(inj.Environment, inj.InitContainers)
+		mutatedInjectedInitContainers = mergeVolumeMounts(inj.VolumeMounts, mutatedInjectedInitContainers)
+		patch = append(patch, addContainers(pod.Spec.InitContainers, mutatedInjectedInitContainers, "/spec/initContainers")...)
+	}
 
-	// next, patch containers with our injected containers
-	patch = append(patch, addContainers(pod.Spec.Containers, mutatedInjectedContainers, "/spec/containers")...)
+	{ // container injections
+		// now, patch all existing containers with the env vars and volume mounts, and add injected containers
+		patch = append(patch, setEnvironment(pod.Spec.Containers, inj.Environment, "/spec/containers")...)
+		patch = append(patch, addVolumeMounts(pod.Spec.Containers, inj.VolumeMounts, "/spec/containers")...)
+		// first, make sure any injected containers in our config get the EnvVars and VolumeMounts injected
+		// this mutates inj.Containers with our environment vars
+		mutatedInjectedContainers := mergeEnvVars(inj.Environment, inj.Containers)
+		mutatedInjectedContainers = mergeVolumeMounts(inj.VolumeMounts, mutatedInjectedContainers)
+		patch = append(patch, addContainers(pod.Spec.Containers, mutatedInjectedContainers, "/spec/containers")...)
+	}
 
-	// now, patch all existing containers with the env vars and volume mounts
-	patch = append(patch, setEnvironment(pod.Spec.Containers, inj.Environment)...)
-	patch = append(patch, addVolumeMounts(pod.Spec.Containers, inj.VolumeMounts)...)
-
-	// now, add initContainers, hostAliases and volumes
-	patch = append(patch, addContainers(pod.Spec.InitContainers, mutatedInjectedInitContainers, "/spec/initContainers")...)
-	patch = append(patch, addHostAliases(pod.Spec.HostAliases, inj.HostAliases, "/spec/hostAliases")...)
-	patch = append(patch, addVolumes(pod.Spec.Volumes, inj.Volumes, "/spec/volumes")...)
+	{ // pod level mutations
+		// now, add hostAliases and volumes
+		patch = append(patch, addHostAliases(pod.Spec.HostAliases, inj.HostAliases, "/spec/hostAliases")...)
+		patch = append(patch, addVolumes(pod.Spec.Volumes, inj.Volumes, "/spec/volumes")...)
+	}
 
 	// last but not least, set annotations
 	patch = append(patch, updateAnnotations(pod.Annotations, annotations)...)

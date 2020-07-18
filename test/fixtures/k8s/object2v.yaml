@@ -1,0 +1,4 @@
+name: object2
+namespace: unittest
+annotations:
+  "injector.unittest.com/request": "complex-sidecar:v420.69"

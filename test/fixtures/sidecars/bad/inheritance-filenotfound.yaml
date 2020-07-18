@@ -1,0 +1,4 @@
+name: inheritance-filenotfound
+
+inherits: "some-missing-file.yaml"
+

@@ -1,0 +1,30 @@
+---
+# this is an AdmissionRequest object
+# https://godoc.org/k8s.io/api/admission/v1beta1#AdmissionRequest
+object:
+  metadata:
+    annotations:
+      injector.unittest.com/request: "maxmind"
+  spec:
+    initContainers:
+      - image: maxmindimage
+        # init2 should get a volumeMount injected
+        name: init2
+        command: ["/bin/init.sh"]
+      - image: maxmindimage
+        name: already-has-volumemount
+        command: ["/bin/init.sh"]
+        volumeMounts:
+        - name: maxminddb # this should NOT get duplicated
+          mountPath: /usr/share/GeoIP
+    containers:
+      - name: ctr-with-volumemount
+        volumeMounts:
+        - name: maxminddb # this should NOT get duplicated
+          mountPath: /usr/share/GeoIP
+      - name: ctr-without-volumemount
+    volumes:
+      # do not redefine the volume here
+      - name: maxminddb
+        emptyDir: {}
+
