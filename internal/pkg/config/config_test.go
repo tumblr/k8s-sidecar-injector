@@ -201,11 +201,11 @@ var (
 			HostAliasCount:     0,
 			InitContainerCount: 1,
 		},
-		"network-pid": configExpectation{
-			name:        "test-network-pid",
-			path:        fixtureSidecarsDir + "/test-network-pid.yaml",
-			hostNetwork: true,
-			hostPID:     true,
+		"network-pid": testhelper.ConfigExpectation{
+			Name:        "test-network-pid",
+			Path:        fixtureSidecarsDir + "/test-network-pid.yaml",
+			HostNetwork: true,
+			HostPID:     true,
 		},
 	}
 )

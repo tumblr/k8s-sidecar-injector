@@ -253,9 +253,6 @@ func setHostPID(target bool, addedHostPID bool, basePath string) (patch []patchO
 	return patch
 }
 
-func addInitContainers(target, added []corev1.Container, basePath string) (patch []patchOperation) {
-	first := len(target) == 0
-	var value interface{}
 func addVolumes(existing, added []corev1.Volume, basePath string) (patch []patchOperation) {
 	hasVolume := func(existing []corev1.Volume, add corev1.Volume) bool {
 		for _, v := range existing {
@@ -459,26 +456,6 @@ func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[s
 		patch = append(patch, setServiceAccount(pod.Spec.InitContainers, pod.Spec.Containers, inj.ServiceAccountName, "/spec")...)
 	}
 
-	// next, make sure any injected init containers in our config get the EnvVars and VolumeMounts injected
-	// this mutates inj.InitContainers with our environment vars
-	mutatedInjectedInitContainers := mergeEnvVars(inj.Environment, inj.InitContainers)
-	mutatedInjectedInitContainers = mergeVolumeMounts(inj.VolumeMounts, mutatedInjectedInitContainers)
-
-	// next, patch containers with our injected containers
-	patch = append(patch, addContainers(pod.Spec.Containers, mutatedInjectedContainers, "/spec/containers")...)
-
-	// now, patch all existing containers with the env vars and volume mounts
-	patch = append(patch, setEnvironment(pod.Spec.Containers, inj.Environment)...)
-	patch = append(patch, addVolumeMounts(pod.Spec.Containers, inj.VolumeMounts)...)
-
-	// now, set hostNetwork,hostPID
-	patch = append(patch, setHostNetwork(pod.Spec.HostNetwork, inj.HostNetwork, "/spec/hostNetwork")...)
-	patch = append(patch, setHostPID(pod.Spec.HostPID, inj.HostPID, "/spec/hostPID")...)
-
-	// now, add initContainers, hostAliases and volumes
-	patch = append(patch, addContainers(pod.Spec.InitContainers, mutatedInjectedInitContainers, "/spec/initContainers")...)
-	patch = append(patch, addHostAliases(pod.Spec.HostAliases, inj.HostAliases, "/spec/hostAliases")...)
-	patch = append(patch, addVolumes(pod.Spec.Volumes, inj.Volumes, "/spec/volumes")...)
 	{ // initcontainer injections
 		// patch all existing InitContainers with the VolumeMounts+EnvVars, and add injected initcontainers
 		patch = append(patch, setEnvironment(pod.Spec.InitContainers, inj.Environment, "/spec/initContainers")...)
@@ -505,6 +482,11 @@ func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[s
 		// now, add hostAliases and volumes
 		patch = append(patch, addHostAliases(pod.Spec.HostAliases, inj.HostAliases, "/spec/hostAliases")...)
 		patch = append(patch, addVolumes(pod.Spec.Volumes, inj.Volumes, "/spec/volumes")...)
+	}
+
+	{ // now, set hostNetwork,hostPID
+		patch = append(patch, setHostNetwork(pod.Spec.HostNetwork, inj.HostNetwork, "/spec/hostNetwork")...)
+		patch = append(patch, setHostPID(pod.Spec.HostPID, inj.HostPID, "/spec/hostPID")...)
 	}
 
 	// last but not least, set annotations

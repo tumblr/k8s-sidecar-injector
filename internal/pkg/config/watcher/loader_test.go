@@ -71,11 +71,11 @@ var (
 				InitContainerCount: 0,
 			},
 		},
-		"configmap-hostNetwork-hostPid": []injectionConfigExpectation{
-			injectionConfigExpectation{
-				name:        "test-network-pid",
-				hostNetwork: true,
-				hostPID:     true,
+		"configmap-hostNetwork-hostPid": []testhelper.ConfigExpectation{
+			testhelper.ConfigExpectation{
+				Name:        "test-network-pid",
+				HostNetwork: true,
+				HostPID:     true,
 			},
 
 		},
@@ -195,14 +195,12 @@ func TestLoadFromConfigMap(t *testing.T) {
 			if err != nil {
 				t.Fatalf("unable to load expected fixture %s: %s", expectedicFile, err.Error())
 			}
-			if ic.HostNetwork != expectedICF.hostNetwork {
-				t.Fatalf("expected %t hostnetwork variables in %s, but found %t", expectedICF.hostNetwork, expectedICF.name, ic.HostNetwork)
+			if ic.HostNetwork != expectedICF.HostNetwork {
+				t.Fatalf("expected %t hostnetwork variables in %s, but found %t", expectedICF.HostNetwork, expectedICF.Name, ic.HostNetwork)
 			}
-			if ic.HostPID != expectedICF.hostPID {
-				t.Fatalf("expected %t hostpid variables in %s, but found %t", expectedICF.hostPID, expectedICF.name, ic.HostPID)
+			if ic.HostPID != expectedICF.HostPID {
+				t.Fatalf("expected %t hostpid variables in %s, but found %t", expectedICF.HostPID, expectedICF.Name, ic.HostPID)
 			}
-			if len(ic.Environment) != expectedICF.envCount {
-				t.Fatalf("expected %d environment variables in %s, but found %d", expectedICF.envCount, expectedICF.name, len(ic.Environment))
 			if ic.Name != expectedICF.Name {
 				t.Fatalf("expected %s Name in %s, but found %s", expectedICF.Name, expectedICF.Path, ic.Name)
 			}
