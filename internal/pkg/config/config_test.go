@@ -190,6 +190,7 @@ var (
 		},
 		"network-pid": testhelper.ConfigExpectation{
 			Name:        "test-network-pid",
+			Version:     "latest",
 			Path:        fixtureSidecarsDir + "/test-network-pid.yaml",
 			HostNetwork: true,
 			HostPID:     true,
