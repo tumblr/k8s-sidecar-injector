@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/tumblr/k8s-sidecar-injector/internal/pkg/config"
-	_ "github.com/tumblr/k8s-sidecar-injector/internal/pkg/testing"
+	testhelper "github.com/tumblr/k8s-sidecar-injector/internal/pkg/testing"
 	"gopkg.in/yaml.v2"
 	"k8s.io/api/core/v1"
 )
@@ -27,39 +27,48 @@ type injectionConfigExpectation struct {
 }
 
 var (
-	// maps a k8s ConfigMap fixture in test/fixtures/k8s/ => InjectionConfigExpectation
-	ExpectedInjectionConfigFixtures = map[string][]injectionConfigExpectation{
-		"configmap-env1": []injectionConfigExpectation{
-			injectionConfigExpectation{
-				name:               "env1",
-				volumeCount:        0,
-				envCount:           3,
-				containerCount:     0,
-				volumeMountCount:   0,
-				hostAliasCount:     0,
-				initContainerCount: 0,
+	fixtureSidecarsDir = "test/fixtures/sidecars"
+	fixtureK8sDir      = "test/fixtures/k8s"
+
+	// maps a k8s ConfigMap fixture in test/fixtures/k8s/ => testhelper.ConfigExpectation
+	ExpectedInjectionConfigFixtures = map[string][]testhelper.ConfigExpectation{
+		"configmap-env1": []testhelper.ConfigExpectation{
+			testhelper.ConfigExpectation{
+				Name:               "env1",
+				Version:            "latest",
+				Path:               fixtureSidecarsDir + "/env1.yaml",
+				VolumeCount:        0,
+				EnvCount:           3,
+				ContainerCount:     0,
+				VolumeMountCount:   0,
+				HostAliasCount:     0,
+				InitContainerCount: 0,
 			},
 		},
-		"configmap-sidecar-test": []injectionConfigExpectation{
-			injectionConfigExpectation{
-				name:               "sidecar-test",
-				volumeCount:        1,
-				envCount:           2,
-				containerCount:     2,
-				volumeMountCount:   0,
-				hostAliasCount:     0,
-				initContainerCount: 0,
+		"configmap-sidecar-test": []testhelper.ConfigExpectation{
+			testhelper.ConfigExpectation{
+				Name:               "sidecar-test",
+				Version:            "latest",
+				Path:               fixtureSidecarsDir + "/sidecar-test.yaml",
+				VolumeCount:        1,
+				EnvCount:           2,
+				ContainerCount:     2,
+				VolumeMountCount:   0,
+				HostAliasCount:     0,
+				InitContainerCount: 0,
 			},
 		},
-		"configmap-complex-sidecar": []injectionConfigExpectation{
-			injectionConfigExpectation{
-				name:               "complex-sidecar",
-				volumeCount:        1,
-				envCount:           0,
-				containerCount:     4,
-				volumeMountCount:   0,
-				hostAliasCount:     0,
-				initContainerCount: 0,
+		"configmap-complex-sidecar": []testhelper.ConfigExpectation{
+			testhelper.ConfigExpectation{
+				Name:               "complex-sidecar",
+				Version:            "v420.69",
+				Path:               fixtureSidecarsDir + "/complex-sidecar.yaml",
+				VolumeCount:        1,
+				EnvCount:           0,
+				ContainerCount:     4,
+				VolumeMountCount:   0,
+				HostAliasCount:     0,
+				InitContainerCount: 0,
 			},
 		},
 		"configmap-hostNetwork-hostPid": []injectionConfigExpectation{
@@ -70,68 +79,74 @@ var (
 			},
 
 		},
-		"configmap-multiple1": []injectionConfigExpectation{
-			injectionConfigExpectation{
-				name:               "env1",
-				volumeCount:        0,
-				envCount:           3,
-				containerCount:     0,
-				volumeMountCount:   0,
-				hostAliasCount:     0,
-				initContainerCount: 0,
+		"configmap-multiple1": []testhelper.ConfigExpectation{
+			testhelper.ConfigExpectation{
+				Name:               "env1",
+				Version:            "latest",
+				Path:               fixtureSidecarsDir + "/env1.yaml",
+				VolumeCount:        0,
+				EnvCount:           3,
+				ContainerCount:     0,
+				VolumeMountCount:   0,
+				HostAliasCount:     0,
+				InitContainerCount: 0,
 			},
-			injectionConfigExpectation{
-				name:               "sidecar-test",
-				volumeCount:        1,
-				envCount:           2,
-				containerCount:     2,
-				volumeMountCount:   0,
-				hostAliasCount:     0,
-				initContainerCount: 0,
-			},
-		},
-		"configmap-volume-mounts": []injectionConfigExpectation{
-			injectionConfigExpectation{
-				name:               "volume-mounts",
-				volumeCount:        2,
-				envCount:           2,
-				containerCount:     3,
-				volumeMountCount:   1,
-				hostAliasCount:     0,
-				initContainerCount: 0,
+			testhelper.ConfigExpectation{
+				Name:               "sidecar-test",
+				Version:            "latest",
+				Path:               fixtureSidecarsDir + "/sidecar-test.yaml",
+				VolumeCount:        1,
+				EnvCount:           2,
+				ContainerCount:     2,
+				VolumeMountCount:   0,
+				HostAliasCount:     0,
+				InitContainerCount: 0,
 			},
 		},
-		"configmap-host-aliases": []injectionConfigExpectation{
-			injectionConfigExpectation{
-				name:               "host-aliases",
-				volumeCount:        0,
-				envCount:           2,
-				containerCount:     1,
-				volumeMountCount:   0,
-				hostAliasCount:     6,
-				initContainerCount: 0,
+		"configmap-volume-mounts": []testhelper.ConfigExpectation{
+			testhelper.ConfigExpectation{
+				Name:               "volume-mounts",
+				Version:            "latest",
+				Path:               fixtureSidecarsDir + "/volume-mounts.yaml",
+				VolumeCount:        2,
+				EnvCount:           2,
+				ContainerCount:     3,
+				VolumeMountCount:   1,
+				HostAliasCount:     0,
+				InitContainerCount: 0,
 			},
 		},
-		"configmap-init-containers": []injectionConfigExpectation{
-			injectionConfigExpectation{
-				name:               "init-containers",
-				volumeCount:        0,
-				envCount:           0,
-				containerCount:     2,
-				volumeMountCount:   0,
-				hostAliasCount:     0,
-				initContainerCount: 1,
+		"configmap-host-aliases": []testhelper.ConfigExpectation{
+			testhelper.ConfigExpectation{
+				Name:               "host-aliases",
+				Version:            "latest",
+				Path:               fixtureSidecarsDir + "/host-aliases.yaml",
+				VolumeCount:        0,
+				EnvCount:           2,
+				ContainerCount:     1,
+				VolumeMountCount:   0,
+				HostAliasCount:     6,
+				InitContainerCount: 0,
+			},
+		},
+		"configmap-init-containers": []testhelper.ConfigExpectation{
+			testhelper.ConfigExpectation{
+				Name:               "init-containers",
+				Version:            "latest",
+				Path:               fixtureSidecarsDir + "/init-containers.yaml",
+				VolumeCount:        0,
+				EnvCount:           0,
+				ContainerCount:     2,
+				VolumeMountCount:   0,
+				HostAliasCount:     0,
+				InitContainerCount: 1,
 			},
 		},
 	}
 )
 
 func k8sFixture(f string) string {
-	return fmt.Sprintf("test/fixtures/k8s/%s.yaml", f)
-}
-
-func injectionConfigFixture(e injectionConfigExpectation) string {
-	return fmt.Sprintf("test/fixtures/sidecars/%s.yaml", e.name)
+	return fmt.Sprintf("%s/%s.yaml", fixtureK8sDir, f)
 }
 
 func TestLoadFromConfigMap(t *testing.T) {
@@ -162,12 +177,12 @@ func TestLoadFromConfigMap(t *testing.T) {
 		// make sure all the appropriate names are present
 		expectedNames := make([]string, len(expectedFixtures))
 		for i, f := range expectedFixtures {
-			expectedNames[i] = f.name
+			expectedNames[i] = f.FullName()
 		}
 		sort.Strings(expectedNames)
 		actualNames := []string{}
 		for _, x := range ics {
-			actualNames = append(actualNames, x.Name)
+			actualNames = append(actualNames, x.FullName())
 		}
 		sort.Strings(actualNames)
 		if strings.Join(expectedNames, ",") != strings.Join(actualNames, ",") {
@@ -175,7 +190,7 @@ func TestLoadFromConfigMap(t *testing.T) {
 		}
 
 		for _, expectedICF := range expectedFixtures {
-			expectedicFile := injectionConfigFixture(expectedICF)
+			expectedicFile := expectedICF.Path
 			ic, err := config.LoadInjectionConfigFromFilePath(expectedicFile)
 			if err != nil {
 				t.Fatalf("unable to load expected fixture %s: %s", expectedicFile, err.Error())
@@ -188,26 +203,37 @@ func TestLoadFromConfigMap(t *testing.T) {
 			}
 			if len(ic.Environment) != expectedICF.envCount {
 				t.Fatalf("expected %d environment variables in %s, but found %d", expectedICF.envCount, expectedICF.name, len(ic.Environment))
+			if ic.Name != expectedICF.Name {
+				t.Fatalf("expected %s Name in %s, but found %s", expectedICF.Name, expectedICF.Path, ic.Name)
 			}
-			if len(ic.Containers) != expectedICF.containerCount {
-				t.Fatalf("expected %d containers in %s, but found %d", expectedICF.containerCount, expectedICF.name, len(ic.Containers))
+			if ic.Version() != expectedICF.Version {
+				t.Fatalf("expected %s Version in %s, but found %s", expectedICF.Version, expectedICF.Path, ic.Version())
 			}
-			if len(ic.Volumes) != expectedICF.volumeCount {
-				t.Fatalf("expected %d volumes in %s, but found %d", expectedICF.volumeCount, expectedICF.name, len(ic.Volumes))
+			if ic.FullName() != expectedICF.FullName() {
+				t.Fatalf("expected %s FullName() in %s, but found %s", expectedICF.FullName(), expectedICF.Path, ic.FullName())
 			}
-			if len(ic.VolumeMounts) != expectedICF.volumeMountCount {
-				t.Fatalf("expected %d volume mounts in %s, but found %d", expectedICF.volumeMountCount, expectedICF.name, len(ic.VolumeMounts))
+			if len(ic.Environment) != expectedICF.EnvCount {
+				t.Fatalf("expected %d environment variables in %s, but found %d", expectedICF.EnvCount, expectedICF.Path, len(ic.Environment))
 			}
-			if len(ic.HostAliases) != expectedICF.hostAliasCount {
-				t.Fatalf("expected %d host aliases in %s, but found %d", expectedICF.hostAliasCount, expectedICF.name, len(ic.HostAliases))
+			if len(ic.Containers) != expectedICF.ContainerCount {
+				t.Fatalf("expected %d containers in %s, but found %d", expectedICF.ContainerCount, expectedICF.Path, len(ic.Containers))
 			}
-			if len(ic.InitContainers) != expectedICF.initContainerCount {
-				t.Fatalf("expected %d init containers in %s, but found %d", expectedICF.initContainerCount, expectedICF.name, len(ic.InitContainers))
+			if len(ic.Volumes) != expectedICF.VolumeCount {
+				t.Fatalf("expected %d volumes in %s, but found %d", expectedICF.VolumeCount, expectedICF.Path, len(ic.Volumes))
+			}
+			if len(ic.VolumeMounts) != expectedICF.VolumeMountCount {
+				t.Fatalf("expected %d volume mounts in %s, but found %d", expectedICF.VolumeMountCount, expectedICF.Path, len(ic.VolumeMounts))
+			}
+			if len(ic.HostAliases) != expectedICF.HostAliasCount {
+				t.Fatalf("expected %d host aliases in %s, but found %d", expectedICF.HostAliasCount, expectedICF.Path, len(ic.HostAliases))
+			}
+			if len(ic.InitContainers) != expectedICF.InitContainerCount {
+				t.Fatalf("expected %d init containers in %s, but found %d", expectedICF.InitContainerCount, expectedICF.Path, len(ic.InitContainers))
 			}
 			for _, actualIC := range ics {
-				if ic.Name == actualIC.Name {
+				if ic.FullName() == actualIC.FullName() {
 					if ic.String() != actualIC.String() {
-						t.Fatalf("expected %s to equal %s", ic.String(), actualIC.String())
+						t.Fatalf("%s: expected %s to equal %s", expectedICF.Path, ic.String(), actualIC.String())
 					}
 				}
 			}

@@ -1,5 +1,5 @@
 ---
-name: complex-sidecar
+name: complex-sidecar:v420.69
 volumes:
 - name: foo-config
   configMap:

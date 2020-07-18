@@ -9,7 +9,7 @@ Uses MutatingAdmissionWebhook in Kubernetes to inject sidecars into new deployme
 
 At Tumblr, we run some containers that have complicated sidecar setups. A kubernetes pod may run 5+ other containers, with some associated volumes and environment variables. It became clear quickly that keeping these sidecars in line would become an operational hassle; making sure every service uses the correct version of each dependency, updating global environment variable sets as configurations in our DCs change, etc. 
 
-To help solve this, we wrote the `k8s-sidecar-injector`. It is a small service that runs in each Kubernetes cluster, and listens to the Kubernetes API via webhooks. For each pod creation, the injector gets a (mutating admission) webhook, asking whether or not to allow the pod launch, and if allowed, what changes we would like to make to it. For pods that have special annotations on them (`injector.tumblr.com/request=some-sidecar-name`), we rewrite the pod configuration to include the containers, volumes, volume mounts, host aliases, init-containers and environment variables defined in the sidecar `some-sidecar-name`'s configuration.
+To help solve this, we wrote the `k8s-sidecar-injector`. It is a small service that runs in each Kubernetes cluster, and listens to the Kubernetes API via webhooks. For each pod creation, the injector gets a (mutating admission) webhook, asking whether or not to allow the pod launch, and if allowed, what changes we would like to make to it. For pods that have special annotations on them (i.e. `injector.tumblr.com/request=logger:v1`), we rewrite the pod configuration to include the containers, volumes, volume mounts, host aliases, init-containers and environment variables defined in the sidecar `logger:v1`'s configuration.
 
 This enabled us to keep sane, centralized configuration for oft-used, but infrequently cared about configuration for our sidecars.
 
@@ -23,10 +23,10 @@ See [/docs/deployment.md](/docs/deployment.md) to see what a sample deployment m
 
 # How it works
 
-1. A pod is created. It has annotation `injector.tumblr.com/request=logger-v1`
+1. A pod is created. It has annotation `injector.tumblr.com/request=logger:v1`
 2. K8s webhooks out to this service, asking whether to allow this pod creation, and how to mutate it
 3. If the pod is annotated with `injector.tumblr.com/status=injected`: Do nothing! Return "allowed" to pod creation
-4. Pull the "logger-v1" sidecar config, patch the resource, and return it to k8s
+4. Pull the "logger:v1" sidecar config, patch the resource, and return it to k8s
 5. Pod will launch in k8s with the modified configuration
 
 A crappy ASCII diagram will help :)
