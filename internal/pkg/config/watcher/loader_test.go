@@ -113,6 +113,7 @@ var (
 		"configmap-hostNetwork-hostPid": []testhelper.ConfigExpectation{
 			testhelper.ConfigExpectation{
 				Name:        "test-network-pid",
+				Version:     "latest",
 				HostNetwork: true,
 				HostPID:     true,
 			},
