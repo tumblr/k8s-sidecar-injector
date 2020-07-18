@@ -14,26 +14,14 @@ import (
 	"k8s.io/api/core/v1"
 )
 
-type injectionConfigExpectation struct {
-	name               string
-	hostNetwork        bool
-	hostPID            bool
-	volumeCount        int
-	envCount           int
-	containerCount     int
-	volumeMountCount   int
-	hostAliasCount     int
-	initContainerCount int
-}
-
 var (
 	fixtureSidecarsDir = "test/fixtures/sidecars"
 	fixtureK8sDir      = "test/fixtures/k8s"
 
 	// maps a k8s ConfigMap fixture in test/fixtures/k8s/ => testhelper.ConfigExpectation
 	ExpectedInjectionConfigFixtures = map[string][]testhelper.ConfigExpectation{
-		"configmap-env1": []testhelper.ConfigExpectation{
-			testhelper.ConfigExpectation{
+		"configmap-env1": {
+			{
 				Name:               "env1",
 				Version:            "latest",
 				Path:               fixtureSidecarsDir + "/env1.yaml",
@@ -45,8 +33,8 @@ var (
 				InitContainerCount: 0,
 			},
 		},
-		"configmap-sidecar-test": []testhelper.ConfigExpectation{
-			testhelper.ConfigExpectation{
+		"configmap-sidecar-test": {
+			{
 				Name:               "sidecar-test",
 				Version:            "latest",
 				Path:               fixtureSidecarsDir + "/sidecar-test.yaml",
@@ -58,8 +46,8 @@ var (
 				InitContainerCount: 0,
 			},
 		},
-		"configmap-complex-sidecar": []testhelper.ConfigExpectation{
-			testhelper.ConfigExpectation{
+		"configmap-complex-sidecar": {
+			{
 				Name:               "complex-sidecar",
 				Version:            "v420.69",
 				Path:               fixtureSidecarsDir + "/complex-sidecar.yaml",
@@ -71,16 +59,15 @@ var (
 				InitContainerCount: 0,
 			},
 		},
-		"configmap-hostNetwork-hostPid": []testhelper.ConfigExpectation{
-			testhelper.ConfigExpectation{
+		"configmap-hostNetwork-hostPid": {
+			{
 				Name:        "test-network-pid",
 				HostNetwork: true,
 				HostPID:     true,
 			},
-
 		},
-		"configmap-multiple1": []testhelper.ConfigExpectation{
-			testhelper.ConfigExpectation{
+		"configmap-multiple1": {
+			{
 				Name:               "env1",
 				Version:            "latest",
 				Path:               fixtureSidecarsDir + "/env1.yaml",
@@ -91,7 +78,7 @@ var (
 				HostAliasCount:     0,
 				InitContainerCount: 0,
 			},
-			testhelper.ConfigExpectation{
+			{
 				Name:               "sidecar-test",
 				Version:            "latest",
 				Path:               fixtureSidecarsDir + "/sidecar-test.yaml",
@@ -103,8 +90,8 @@ var (
 				InitContainerCount: 0,
 			},
 		},
-		"configmap-volume-mounts": []testhelper.ConfigExpectation{
-			testhelper.ConfigExpectation{
+		"configmap-volume-mounts": {
+			{
 				Name:               "volume-mounts",
 				Version:            "latest",
 				Path:               fixtureSidecarsDir + "/volume-mounts.yaml",
@@ -116,8 +103,8 @@ var (
 				InitContainerCount: 0,
 			},
 		},
-		"configmap-host-aliases": []testhelper.ConfigExpectation{
-			testhelper.ConfigExpectation{
+		"configmap-host-aliases": {
+			{
 				Name:               "host-aliases",
 				Version:            "latest",
 				Path:               fixtureSidecarsDir + "/host-aliases.yaml",
@@ -129,8 +116,8 @@ var (
 				InitContainerCount: 0,
 			},
 		},
-		"configmap-init-containers": []testhelper.ConfigExpectation{
-			testhelper.ConfigExpectation{
+		"configmap-init-containers": {
+			{
 				Name:               "init-containers",
 				Version:            "latest",
 				Path:               fixtureSidecarsDir + "/init-containers.yaml",
