@@ -39,6 +39,8 @@ type InjectionConfig struct {
 	Environment        []corev1.EnvVar      `json:"env"`
 	VolumeMounts       []corev1.VolumeMount `json:"volumeMounts"`
 	HostAliases        []corev1.HostAlias   `json:"hostAliases"`
+	HostNetwork        bool                 `json:"hostNetwork"`
+	HostPID            bool                 `json:"hostPID"`
 	InitContainers     []corev1.Container   `json:"initContainers"`
 	ServiceAccountName string               `json:"serviceAccountName"`
 

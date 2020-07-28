@@ -7,6 +7,7 @@ import (
 	testhelper "github.com/tumblr/k8s-sidecar-injector/internal/pkg/testing"
 )
 
+
 var (
 	// location of the fixture sidecar files
 	fixtureSidecarsDir = "test/fixtures/sidecars"
@@ -186,6 +187,13 @@ var (
 			VolumeMountCount:   1,
 			HostAliasCount:     0,
 			InitContainerCount: 1,
+		},
+		"network-pid": testhelper.ConfigExpectation{
+			Name:        "test-network-pid",
+			Version:     "latest",
+			Path:        fixtureSidecarsDir + "/test-network-pid.yaml",
+			HostNetwork: true,
+			HostPID:     true,
 		},
 	}
 )

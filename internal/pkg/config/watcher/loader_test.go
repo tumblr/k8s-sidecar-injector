@@ -11,7 +11,7 @@ import (
 	"github.com/tumblr/k8s-sidecar-injector/internal/pkg/config"
 	testhelper "github.com/tumblr/k8s-sidecar-injector/internal/pkg/testing"
 	"gopkg.in/yaml.v2"
-	v1 "k8s.io/api/core/v1"
+	"k8s.io/api/core/v1"
 )
 
 var (
@@ -109,6 +109,17 @@ var (
 				InitContainerCount: 0,
 			},
 		},
+
+		"configmap-hostNetwork-hostPid": []testhelper.ConfigExpectation{
+			testhelper.ConfigExpectation{
+				Name:        "test-network-pid",
+				Version:     "latest",
+				Path:        fixtureSidecarsDir + "/test-network-pid.yaml",
+				HostNetwork: true,
+				HostPID:     true,
+			},
+		},
+
 		"configmap-init-containers": []testhelper.ConfigExpectation{
 			testhelper.ConfigExpectation{
 				Name:               "init-containers",
@@ -174,6 +185,12 @@ func TestLoadFromConfigMap(t *testing.T) {
 			ic, err := config.LoadInjectionConfigFromFilePath(expectedicFile)
 			if err != nil {
 				t.Fatalf("unable to load expected fixture %s: %s", expectedicFile, err.Error())
+			}
+			if ic.HostNetwork != expectedICF.HostNetwork {
+				t.Fatalf("expected %t hostnetwork variables in %s, but found %t", expectedICF.HostNetwork, expectedICF.Name, ic.HostNetwork)
+			}
+			if ic.HostPID != expectedICF.HostPID {
+				t.Fatalf("expected %t hostpid variables in %s, but found %t", expectedICF.HostPID, expectedICF.Name, ic.HostPID)
 			}
 			if ic.Name != expectedICF.Name {
 				t.Fatalf("expected %s Name in %s, but found %s", expectedICF.Name, expectedICF.Path, ic.Name)

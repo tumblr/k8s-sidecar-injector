@@ -18,6 +18,8 @@ type ConfigExpectation struct {
 	VolumeCount        int
 	VolumeMountCount   int
 	HostAliasCount     int
+	HostNetwork        bool
+	HostPID            bool
 	InitContainerCount int
 	ServiceAccount     string
 
