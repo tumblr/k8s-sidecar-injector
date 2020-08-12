@@ -21,6 +21,8 @@ import (
 	"github.com/tumblr/k8s-sidecar-injector/internal/pkg/version"
 	"github.com/tumblr/k8s-sidecar-injector/pkg/coalescer"
 	"github.com/tumblr/k8s-sidecar-injector/pkg/server"
+
+	"github.com/dyson/certman"
 )
 
 var (
@@ -168,12 +170,16 @@ func main() {
 	}
 
 	if parameters.CertFile != "" && parameters.KeyFile != "" {
-		pair, err := tls.LoadX509KeyPair(parameters.CertFile, parameters.KeyFile)
+		cm, err := certman.New(parameters.CertFile, parameters.KeyFile)
 		if err != nil {
 			glog.Errorf("Failed to load key pair: %v", err)
 			os.Exit(1)
 		}
-		whsvr.Server.TLSConfig = &tls.Config{Certificates: []tls.Certificate{pair}}
+		if err := cm.Watch(); err != nil {
+			glog.Errorf("Failed to start watcher on key pair: %v", err)
+			os.Exit(1)
+		}
+		whsvr.Server.TLSConfig = &tls.Config{GetCertificate: cm.GetCertificate}
 	}
 
 	// define secure mux for routing requests that come in over our TLS port
