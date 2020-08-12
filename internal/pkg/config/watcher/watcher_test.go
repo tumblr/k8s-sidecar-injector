@@ -26,7 +26,8 @@ func TestGet(t *testing.T) {
 		client: fake.NewSimpleClientset().CoreV1(),
 	}
 
-	messages, err := w.Get()
+	ctx := context.Background()
+	messages, err := w.Get(ctx)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

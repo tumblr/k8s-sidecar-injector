@@ -129,7 +129,7 @@ func main() {
 			select {
 			case <-eventsCh:
 				glog.V(1).Infof("triggering ConfigMap reconciliation")
-				updatedInjectionConfigs, err := configWatcher.Get()
+				updatedInjectionConfigs, err := configWatcher.Get(ctx)
 				if err != nil {
 					glog.Errorf("error reconciling configmaps: %s", err.Error())
 					continue

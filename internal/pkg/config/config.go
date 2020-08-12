@@ -177,30 +177,30 @@ func LoadConfigDirectory(path string) (*Config, error) {
 	return &cfg, nil
 }
 
-// Merge mutates base by merging in fields from child, to create an inheritance
+// Merge mutates c by merging in fields from child, to create an inheritance
 // functionality.
-func (base *InjectionConfig) Merge(child *InjectionConfig) error {
+func (c *InjectionConfig) Merge(child *InjectionConfig) error {
 	if child == nil {
 		return ErrCannotMergeNilInjectionConfig
 	}
-	// for all fields, merge child into base, eventually returning base
-	base.Name = child.Name
-	base.version = child.version
-	base.Inherits = child.Inherits
+	// for all fields, merge child into c, eventually returning c
+	c.Name = child.Name
+	c.version = child.version
+	c.Inherits = child.Inherits
 
 	// merge containers
 	for _, cctr := range child.Containers {
 		contains := false
 
-		for bi, bctr := range base.Containers {
+		for bi, bctr := range c.Containers {
 			if bctr.Name == cctr.Name {
 				contains = true
-				base.Containers[bi] = cctr
+				c.Containers[bi] = cctr
 			}
 		}
 
 		if !contains {
-			base.Containers = append(base.Containers, cctr)
+			c.Containers = append(c.Containers, cctr)
 		}
 	}
 
@@ -208,15 +208,15 @@ func (base *InjectionConfig) Merge(child *InjectionConfig) error {
 	for _, cv := range child.Volumes {
 		contains := false
 
-		for bi, bv := range base.Volumes {
+		for bi, bv := range c.Volumes {
 			if bv.Name == cv.Name {
 				contains = true
-				base.Volumes[bi] = cv
+				c.Volumes[bi] = cv
 			}
 		}
 
 		if !contains {
-			base.Volumes = append(base.Volumes, cv)
+			c.Volumes = append(c.Volumes, cv)
 		}
 	}
 
@@ -224,15 +224,15 @@ func (base *InjectionConfig) Merge(child *InjectionConfig) error {
 	for _, cv := range child.Environment {
 		contains := false
 
-		for bi, bv := range base.Environment {
+		for bi, bv := range c.Environment {
 			if bv.Name == cv.Name {
 				contains = true
-				base.Environment[bi] = cv
+				c.Environment[bi] = cv
 			}
 		}
 
 		if !contains {
-			base.Environment = append(base.Environment, cv)
+			c.Environment = append(c.Environment, cv)
 		}
 	}
 
@@ -240,41 +240,41 @@ func (base *InjectionConfig) Merge(child *InjectionConfig) error {
 	for _, cv := range child.VolumeMounts {
 		contains := false
 
-		for bi, bv := range base.VolumeMounts {
+		for bi, bv := range c.VolumeMounts {
 			if bv.Name == cv.Name {
 				contains = true
-				base.VolumeMounts[bi] = cv
+				c.VolumeMounts[bi] = cv
 			}
 		}
 
 		if !contains {
-			base.VolumeMounts = append(base.VolumeMounts, cv)
+			c.VolumeMounts = append(c.VolumeMounts, cv)
 		}
 	}
 
 	// merge host aliases
 	// note: we do not need to merge things, as entries are not keyed
-	base.HostAliases = append(base.HostAliases, child.HostAliases...)
+	c.HostAliases = append(c.HostAliases, child.HostAliases...)
 
 	// merge init containers
 	for _, cv := range child.InitContainers {
 		contains := false
 
-		for bi, bv := range base.InitContainers {
+		for bi, bv := range c.InitContainers {
 			if bv.Name == cv.Name {
 				contains = true
-				base.InitContainers[bi] = cv
+				c.InitContainers[bi] = cv
 			}
 		}
 
 		if !contains {
-			base.InitContainers = append(base.InitContainers, cv)
+			c.InitContainers = append(c.InitContainers, cv)
 		}
 	}
 
 	// merge serviceAccount settings to the left
 	if child.ServiceAccountName != "" {
-		base.ServiceAccountName = child.ServiceAccountName
+		c.ServiceAccountName = child.ServiceAccountName
 	}
 
 	return nil
