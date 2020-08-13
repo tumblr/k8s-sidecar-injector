@@ -12,7 +12,7 @@ Include any test fixtures or sample configurations in your commit.
 
 # Reviewers
 
-Required reviewers: `@byxorna`
+Required reviewers: @alex-laties @kirooshu @defect
 Request reviews from other people you want to review this PR in the "Reviewers" section on the right.
 
 > :warning: this PR must have at least 2 thumbs from the [MAINTAINERS.md](/MAINTAINERS.md) of the project before merging!
