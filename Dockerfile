@@ -7,10 +7,9 @@ RUN apk --no-cache add \
   git
 
 WORKDIR /src
-COPY go.mod go.sum Makefile ./
+COPY . .
 # run vendor install and lint, so we have all deps installed
 RUN make vendor lint
-COPY . .
 RUN make test all
 
 FROM alpine:latest
