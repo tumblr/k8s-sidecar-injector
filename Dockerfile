@@ -4,7 +4,8 @@ FROM golang:${GO_VERSION}-alpine
 RUN apk --no-cache add \
   ca-certificates \
   make \
-  git
+  git \
+  && go get -u golang.org/x/lint/golint
 
 WORKDIR /src
 COPY . .
