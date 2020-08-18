@@ -9,6 +9,7 @@ env:
   - GO111MODULE=on
 
 before_install:
+  - go get -u golang.org/x/lint/golint
   - rm go.sum
 
 install: true # skip for now, due to gomodules being annoying
