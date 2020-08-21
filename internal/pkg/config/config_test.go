@@ -7,7 +7,6 @@ import (
 	testhelper "github.com/tumblr/k8s-sidecar-injector/internal/pkg/testing"
 )
 
-
 var (
 	// location of the fixture sidecar files
 	fixtureSidecarsDir = "test/fixtures/sidecars"
@@ -194,6 +193,18 @@ var (
 			Path:        fixtureSidecarsDir + "/test-network-pid.yaml",
 			HostNetwork: true,
 			HostPID:     true,
+		},
+		"skip-host-network": testhelper.ConfigExpectation{
+			Name:               "skip-host-network",
+			Version:            "latest",
+			Path:               fixtureSidecarsDir + "/skip-host-network.yaml",
+			EnvCount:           2,
+			ContainerCount:     2,
+			VolumeCount:        1,
+			VolumeMountCount:   0,
+			HostAliasCount:     0,
+			InitContainerCount: 0,
+			SkipHostNetwork:    true,
 		},
 	}
 )

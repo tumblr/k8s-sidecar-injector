@@ -1,0 +1,74 @@
+[
+   {
+      "op" : "add",
+      "path" : "/spec/containers",
+      "value" : [
+         {
+            "env" : [
+               {
+                  "name" : "DATACENTER",
+                  "value" : "bf2"
+               },
+               {
+                  "name" : "FROM_INJECTOR",
+                  "value" : "bar"
+               }
+            ],
+            "image" : "nginx:1.12.2",
+            "imagePullPolicy" : "IfNotPresent",
+            "name" : "sidecar-nginx",
+            "ports" : [
+               {
+                  "containerPort" : 80
+               }
+            ],
+            "resources" : {},
+            "volumeMounts" : [
+               {
+                  "mountPath" : "/etc/nginx",
+                  "name" : "nginx-conf"
+               }
+            ]
+         }
+      ]
+   },
+   {
+      "op" : "add",
+      "path" : "/spec/containers/-",
+      "value" : {
+         "env" : [
+            {
+               "name" : "DATACENTER",
+               "value" : "foo"
+            },
+            {
+               "name" : "FROM_INJECTOR",
+               "value" : "bar"
+            }
+         ],
+         "image" : "foo:69",
+         "name" : "another-sidecar",
+         "ports" : [
+            {
+               "containerPort" : 420
+            }
+         ],
+         "resources" : {}
+      }
+   },
+   {
+      "op" : "add",
+      "path" : "/spec/volumes/-",
+      "value" : {
+          "configMap" : {
+             "name" : "nginx-configmap"
+          },
+          "name" : "nginx-conf"
+       }
+   },
+   {
+      "op" : "add",
+      "path" : "/metadata/annotations/injector.unittest.com~1status",
+      "value" : "injected"
+   }
+]

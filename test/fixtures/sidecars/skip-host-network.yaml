@@ -1,0 +1,28 @@
+---
+name: skip-host-network
+env:
+  - name: DATACENTER
+    value: foo
+  - name: FROM_INJECTOR
+    value: bar
+containers:
+  - name: sidecar-nginx
+    image: nginx:1.12.2
+    imagePullPolicy: IfNotPresent
+    env:
+      - name: DATACENTER
+        value: bf2
+    ports:
+      - containerPort: 80
+    volumeMounts:
+      - name: nginx-conf
+        mountPath: /etc/nginx
+  - name: another-sidecar
+    image: foo:69
+    ports:
+      - containerPort: 420
+volumes:
+  - name: nginx-conf
+    configMap:
+      name: nginx-configmap
+skipHostNetwork: true

@@ -219,6 +219,9 @@ func TestLoadFromConfigMap(t *testing.T) {
 			if len(ic.InitContainers) != expectedICF.InitContainerCount {
 				t.Fatalf("expected %d init containers in %s, but found %d", expectedICF.InitContainerCount, expectedICF.Path, len(ic.InitContainers))
 			}
+			if ic.SkipHostNetwork != expectedICF.SkipHostNetwork {
+				t.Fatalf("expected %t skipHostNetwork variables in %s, but found %t", expectedICF.SkipHostNetwork, expectedICF.Name, ic.SkipHostNetwork)
+			}
 			for _, actualIC := range ics {
 				if ic.FullName() == actualIC.FullName() {
 					if ic.String() != actualIC.String() {
