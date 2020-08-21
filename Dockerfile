@@ -4,13 +4,13 @@ FROM golang:${GO_VERSION}-alpine
 RUN apk --no-cache add \
   ca-certificates \
   make \
-  git \
-  && go get -u golang.org/x/lint/golint
+  git
 
 WORKDIR /src
-COPY . .
+COPY go.mod go.sum Makefile ./
 # run vendor install and lint, so we have all deps installed
 RUN make vendor lint
+COPY . .
 RUN make test all
 
 FROM alpine:latest
