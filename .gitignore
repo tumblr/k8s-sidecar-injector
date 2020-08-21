@@ -19,3 +19,6 @@
 /bin/
 /test/tests.xml
 /test/tests.output
+
+# idea
+.idea/
