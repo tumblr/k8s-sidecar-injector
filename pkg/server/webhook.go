@@ -210,10 +210,27 @@ func setEnvironment(target []corev1.Container, addedEnv []corev1.EnvVar, basePat
 	return patch
 }
 
-func addContainers(target, added []corev1.Container, basePath string) (patch []patchOperation) {
+func addContainers(target, prepended, appended []corev1.Container, basePath string) (patch []patchOperation) {
 	first := len(target) == 0
 	var value interface{}
-	for _, add := range added {
+	for i := len(prepended) - 1; i >= 0; i-- {
+		add := prepended[i]
+		value = add
+		path := basePath
+		if first {
+			first = false
+			value = []corev1.Container{add}
+		} else {
+			path = path + "/0"
+		}
+		patch = append(patch, patchOperation{
+			Op:    "add",
+			Path:  path,
+			Value: value,
+		})
+	}
+
+	for _, add := range appended {
 		value = add
 		path := basePath
 		if first {
@@ -464,7 +481,7 @@ func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[s
 		// this mutates inj.InitContainers with our environment vars
 		mutatedInjectedInitContainers := mergeEnvVars(inj.Environment, inj.InitContainers)
 		mutatedInjectedInitContainers = mergeVolumeMounts(inj.VolumeMounts, mutatedInjectedInitContainers)
-		patch = append(patch, addContainers(pod.Spec.InitContainers, mutatedInjectedInitContainers, "/spec/initContainers")...)
+		patch = append(patch, addContainers(pod.Spec.InitContainers, []corev1.Container{}, mutatedInjectedInitContainers, "/spec/initContainers")...)
 	}
 
 	{ // container injections
@@ -475,7 +492,10 @@ func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[s
 		// this mutates inj.Containers with our environment vars
 		mutatedInjectedContainers := mergeEnvVars(inj.Environment, inj.Containers)
 		mutatedInjectedContainers = mergeVolumeMounts(inj.VolumeMounts, mutatedInjectedContainers)
-		patch = append(patch, addContainers(pod.Spec.Containers, mutatedInjectedContainers, "/spec/containers")...)
+		mutatedInjectedPrependedContainers := mergeEnvVars(inj.Environment, inj.PrependedContainers)
+		mutatedInjectedPrependedContainers = mergeVolumeMounts(inj.VolumeMounts, mutatedInjectedPrependedContainers)
+		// then, add containers to the patch
+		patch = append(patch, addContainers(pod.Spec.Containers, mutatedInjectedPrependedContainers, mutatedInjectedContainers, "/spec/containers")...)
 	}
 
 	{ // pod level mutations

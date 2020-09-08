@@ -1,0 +1,67 @@
+[
+  {
+    "op": "add",
+    "path": "/spec/containers",
+    "value": [
+      {
+        "image": "alpine:latest",
+        "name": "prepended-container-2",
+        "ports": [
+          {
+            "containerPort": 1234
+          }
+        ],
+        "resources": {}
+      }
+    ]
+  },
+  {
+    "op": "add",
+    "path": "/spec/containers/0",
+    "value": {
+      "image": "foobar:2020",
+      "imagePullPolicy": "IfNotPresent",
+      "name": "prepended-container-1",
+      "ports": [
+        {
+          "containerPort": 666
+        }
+      ],
+      "resources": {}
+    }
+  },
+  {
+    "op": "add",
+    "path": "/spec/containers/-",
+    "value": {
+      "image": "nginx:1.12.2",
+      "imagePullPolicy": "IfNotPresent",
+      "name": "sidecar-add-vm",
+      "ports": [
+        {
+          "containerPort": 80
+        }
+      ],
+      "resources": {}
+    }
+  },
+  {
+    "op": "add",
+    "path": "/spec/containers/-",
+    "value": {
+      "image": "foo:69",
+      "name": "sidecar-existing-vm",
+      "ports": [
+        {
+          "containerPort": 420
+        }
+      ],
+      "resources": {}
+    }
+  },
+  {
+    "op": "add",
+    "path": "/metadata/annotations/injector.unittest.com~1status",
+    "value": "injected"
+  }
+]

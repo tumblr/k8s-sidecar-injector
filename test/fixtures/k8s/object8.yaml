@@ -1,0 +1,4 @@
+name: object8
+namespace: unittest
+annotations:
+  "injector.unittest.com/request": "prepended-containers"

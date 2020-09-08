@@ -12,16 +12,17 @@ type ConfigExpectation struct {
 	// version is the parsed version string, or "latest" if omitted
 	Version string
 	// Path is the path to the YAML to load the sidecar yaml from
-	Path               string
-	EnvCount           int
-	ContainerCount     int
-	VolumeCount        int
-	VolumeMountCount   int
-	HostAliasCount     int
-	HostNetwork        bool
-	HostPID            bool
-	InitContainerCount int
-	ServiceAccount     string
+	Path                    string
+	EnvCount                int
+	ContainerCount          int
+	VolumeCount             int
+	VolumeMountCount        int
+	HostAliasCount          int
+	HostNetwork             bool
+	HostPID                 bool
+	InitContainerCount      int
+	ServiceAccount          string
+	PrependedContainerCount int
 
 	// LoadError is an error, if any, that is expected during load
 	LoadError error
