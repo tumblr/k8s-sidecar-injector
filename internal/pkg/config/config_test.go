@@ -7,7 +7,6 @@ import (
 	testhelper "github.com/tumblr/k8s-sidecar-injector/internal/pkg/testing"
 )
 
-
 var (
 	// location of the fixture sidecar files
 	fixtureSidecarsDir = "test/fixtures/sidecars"

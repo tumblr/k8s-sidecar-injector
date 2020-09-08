@@ -100,7 +100,7 @@ func validate(c *K8sConfigMapWatcher) error {
 // Watch watches for events impacting watched ConfigMaps and emits their events across a channel
 func (c *K8sConfigMapWatcher) Watch(ctx context.Context, notifyMe chan<- interface{}) error {
 	glog.V(3).Infof("Watching for ConfigMaps for changes on namespace=%s with labels=%v", c.Namespace, c.ConfigMapLabels)
-	watcher, err := c.client.ConfigMaps(c.Namespace).Watch(metav1.ListOptions{
+	watcher, err := c.client.ConfigMaps(c.Namespace).Watch(ctx, metav1.ListOptions{
 		LabelSelector: mapStringStringToLabelSelector(c.ConfigMapLabels),
 	})
 	if err != nil {
@@ -147,9 +147,9 @@ func mapStringStringToLabelSelector(m map[string]string) string {
 }
 
 // Get fetches all matching ConfigMaps
-func (c *K8sConfigMapWatcher) Get() (cfgs []*config.InjectionConfig, err error) {
+func (c *K8sConfigMapWatcher) Get(ctx context.Context) (cfgs []*config.InjectionConfig, err error) {
 	glog.V(1).Infof("Fetching ConfigMaps...")
-	clist, err := c.client.ConfigMaps(c.Namespace).List(metav1.ListOptions{
+	clist, err := c.client.ConfigMaps(c.Namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: mapStringStringToLabelSelector(c.ConfigMapLabels),
 	})
 	if err != nil {

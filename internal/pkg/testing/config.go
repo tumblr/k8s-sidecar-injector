@@ -27,6 +27,7 @@ type ConfigExpectation struct {
 	LoadError error
 }
 
+// FullName returns name + version string
 func (x *ConfigExpectation) FullName() string {
 	return strings.ToLower(fmt.Sprintf("%s:%s", x.Name, x.Version))
 }

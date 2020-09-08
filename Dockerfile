@@ -1,4 +1,4 @@
-ARG GO_VERSION=1.11.5
+ARG GO_VERSION=1.15.0
 FROM golang:${GO_VERSION}-alpine
 
 RUN apk --no-cache add \
