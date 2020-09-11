@@ -40,7 +40,3 @@ containers:
 initContainers:
   - name: a-new-image
     image: some-value
-
-prependedContainers:
-  - name: a-new-image
-    image: some-value

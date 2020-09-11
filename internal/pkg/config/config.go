@@ -32,18 +32,18 @@ var (
 
 // InjectionConfig is a specific instance of a injected config, for a given annotation
 type InjectionConfig struct {
-	Name                string               `json:"name"`
-	Inherits            string               `json:"inherits"`
-	Containers          []corev1.Container   `json:"containers"`
-	Volumes             []corev1.Volume      `json:"volumes"`
-	Environment         []corev1.EnvVar      `json:"env"`
-	VolumeMounts        []corev1.VolumeMount `json:"volumeMounts"`
-	HostAliases         []corev1.HostAlias   `json:"hostAliases"`
-	HostNetwork         bool                 `json:"hostNetwork"`
-	HostPID             bool                 `json:"hostPID"`
-	InitContainers      []corev1.Container   `json:"initContainers"`
-	ServiceAccountName  string               `json:"serviceAccountName"`
-	PrependedContainers []corev1.Container   `json:"prependedContainers"`
+	Name               string               `json:"name"`
+	Inherits           string               `json:"inherits"`
+	Containers         []corev1.Container   `json:"containers"`
+	Volumes            []corev1.Volume      `json:"volumes"`
+	Environment        []corev1.EnvVar      `json:"env"`
+	VolumeMounts       []corev1.VolumeMount `json:"volumeMounts"`
+	HostAliases        []corev1.HostAlias   `json:"hostAliases"`
+	HostNetwork        bool                 `json:"hostNetwork"`
+	HostPID            bool                 `json:"hostPID"`
+	InitContainers     []corev1.Container   `json:"initContainers"`
+	ServiceAccountName string               `json:"serviceAccountName"`
+	PrependContainers  bool                 `json:"prependContainers"`
 
 	version string
 }
@@ -69,7 +69,7 @@ func (c *InjectionConfig) String() string {
 	return fmt.Sprintf("%s%s: %d containers, %d init containers, %d volumes, %d environment vars, %d volume mounts, %d host aliases%s",
 		c.FullName(),
 		inheritsString,
-		len(c.Containers)+len(c.PrependedContainers),
+		len(c.Containers),
 		len(c.InitContainers),
 		len(c.Volumes),
 		len(c.Environment),
@@ -270,22 +270,6 @@ func (c *InjectionConfig) Merge(child *InjectionConfig) error {
 
 		if !contains {
 			c.InitContainers = append(c.InitContainers, cv)
-		}
-	}
-
-	// merge prepended containers
-	for _, cv := range child.PrependedContainers {
-		contains := false
-
-		for bi, bv := range c.PrependedContainers {
-			if bv.Name == cv.Name {
-				contains = true
-				c.PrependedContainers[bi] = cv
-			}
-		}
-
-		if !contains {
-			c.PrependedContainers = append(c.PrependedContainers, cv)
 		}
 	}
 

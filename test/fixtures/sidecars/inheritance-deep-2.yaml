@@ -43,7 +43,3 @@ containers:
 initContainers:
   - name: a-new-image-2
     image: some-value
-
-prependedContainers:
-  - name: a-new-image-2
-    image: some-value

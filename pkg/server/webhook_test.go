@@ -52,7 +52,7 @@ var (
 		{configuration: obj7, expectedSidecar: "init-containers:latest"},
 		{configuration: obj7v2, expectedSidecar: "init-containers:v2"},
 		{configuration: obj7v3, expectedSidecar: "", expectedError: ErrRequestedSidecarNotFound},
-		{configuration: obj8, expectedSidecar: "prepended-containers:latest"},
+		{configuration: obj8, expectedSidecar: "prepend-containers:latest"},
 		{configuration: ignoredNamespace, expectedSidecar: "", expectedError: ErrSkipIgnoredNamespace},
 		{configuration: badSidecar, expectedSidecar: "", expectedError: ErrRequestedSidecarNotFound},
 	}
@@ -62,7 +62,7 @@ var (
 		{name: "missing-sidecar-config", allowed: true, patchExpected: false},
 		{name: "sidecar-test-1", allowed: true, patchExpected: true},
 		{name: "env-override", allowed: true, patchExpected: true},
-		{name: "prepended-containers", allowed: true, patchExpected: true},
+		{name: "prepend-containers", allowed: true, patchExpected: true},
 		{name: "service-account", allowed: true, patchExpected: true},
 		{name: "service-account-already-set", allowed: true, patchExpected: true},
 		{name: "service-account-set-default", allowed: true, patchExpected: true},

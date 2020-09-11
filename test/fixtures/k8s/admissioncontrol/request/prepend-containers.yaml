@@ -4,6 +4,6 @@
 object:
   metadata:
     annotations:
-      injector.unittest.com/request: "prepended-containers"
+      injector.unittest.com/request: "prepend-containers"
   spec:
     containers: []
