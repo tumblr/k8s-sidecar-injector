@@ -210,7 +210,7 @@ func setEnvironment(target []corev1.Container, addedEnv []corev1.EnvVar, basePat
 	return patch
 }
 
-func addContainers(target, added []corev1.Container, basePath string) (patch []patchOperation) {
+func appendContainers(target, added []corev1.Container, basePath string) (patch []patchOperation) {
 	first := len(target) == 0
 	var value interface{}
 	for _, add := range added {
@@ -486,7 +486,7 @@ func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[s
 		// this mutates inj.InitContainers with our environment vars
 		mutatedInjectedInitContainers := mergeEnvVars(inj.Environment, inj.InitContainers)
 		mutatedInjectedInitContainers = mergeVolumeMounts(inj.VolumeMounts, mutatedInjectedInitContainers)
-		patch = append(patch, addContainers(pod.Spec.InitContainers, mutatedInjectedInitContainers, "/spec/initContainers")...)
+		patch = append(patch, appendContainers(pod.Spec.InitContainers, mutatedInjectedInitContainers, "/spec/initContainers")...)
 	}
 
 	{ // container injections
@@ -501,7 +501,7 @@ func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[s
 		if inj.PrependContainers {
 			patch = append(patch, prependContainers(pod.Spec.Containers, mutatedInjectedContainers, "/spec/containers")...)
 		} else {
-			patch = append(patch, addContainers(pod.Spec.Containers, mutatedInjectedContainers, "/spec/containers")...)
+			patch = append(patch, appendContainers(pod.Spec.Containers, mutatedInjectedContainers, "/spec/containers")...)
 		}
 	}
 
