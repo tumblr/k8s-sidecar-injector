@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -22,21 +23,18 @@ var (
 	jsondiffopts = jsondiff.DefaultConsoleOptions()
 
 	// all these configs are deserialized into metav1.ObjectMeta structs
-	obj1             = "test/fixtures/k8s/object1.yaml"
-	obj2latest       = "test/fixtures/k8s/object2latest.yaml"
-	obj2v            = "test/fixtures/k8s/object2v.yaml"
-	env1             = "test/fixtures/k8s/env1.yaml"
-	obj3Missing      = "test/fixtures/k8s/object3-missing.yaml"
-	obj4             = "test/fixtures/k8s/object4.yaml"
-	obj5             = "test/fixtures/k8s/object5.yaml"
-	obj6             = "test/fixtures/k8s/object6.yaml"
-	obj7             = "test/fixtures/k8s/object7.yaml"
-	obj7v2           = "test/fixtures/k8s/object7-v2.yaml"
-	obj7v3           = "test/fixtures/k8s/object7-badrequestformat.yaml"
-	ignoredNamespace = "test/fixtures/k8s/ignored-namespace-pod.yaml"
-	badSidecar       = "test/fixtures/k8s/bad-sidecar.yaml"
-
-	testIgnoredNamespaces = []string{"ignore-me"}
+	obj1        = "test/fixtures/k8s/object1.yaml"
+	obj2latest  = "test/fixtures/k8s/object2latest.yaml"
+	obj2v       = "test/fixtures/k8s/object2v.yaml"
+	env1        = "test/fixtures/k8s/env1.yaml"
+	obj3Missing = "test/fixtures/k8s/object3-missing.yaml"
+	obj4        = "test/fixtures/k8s/object4.yaml"
+	obj5        = "test/fixtures/k8s/object5.yaml"
+	obj6        = "test/fixtures/k8s/object6.yaml"
+	obj7        = "test/fixtures/k8s/object7.yaml"
+	obj7v2      = "test/fixtures/k8s/object7-v2.yaml"
+	obj7v3      = "test/fixtures/k8s/object7-badrequestformat.yaml"
+	badSidecar  = "test/fixtures/k8s/bad-sidecar.yaml"
 
 	// tests to check config loading of sidecars
 	configTests = []expectedSidecarConfiguration{
@@ -51,13 +49,13 @@ var (
 		{configuration: obj7, expectedSidecar: "init-containers:latest"},
 		{configuration: obj7v2, expectedSidecar: "init-containers:v2"},
 		{configuration: obj7v3, expectedSidecar: "", expectedError: ErrRequestedSidecarNotFound},
-		{configuration: ignoredNamespace, expectedSidecar: "", expectedError: ErrSkipIgnoredNamespace},
 		{configuration: badSidecar, expectedSidecar: "", expectedError: ErrRequestedSidecarNotFound},
 	}
 
 	// tests to check the mutate() function for correct operation
 	mutationTests = []mutationTest{
 		{name: "missing-sidecar-config", allowed: true, patchExpected: false},
+		{name: "ignored-namespace", allowed: true, patchExpected: false},
 		{name: "sidecar-test-1", allowed: true, patchExpected: true},
 		{name: "env-override", allowed: true, patchExpected: true},
 		{name: "service-account", allowed: true, patchExpected: true},
@@ -115,8 +113,8 @@ func TestLoadConfig(t *testing.T) {
 		if err := yaml.Unmarshal(data, &obj); err != nil {
 			t.Fatalf("unable to unmarshal object metadata yaml: %v", err)
 		}
-		key, err := s.getSidecarConfigurationRequested(testIgnoredNamespaces, obj)
-		if err != test.expectedError {
+		key, err := s.getSidecarConfigurationRequested(obj)
+		if !errors.Is(err, test.expectedError) {
 			t.Fatalf("%s: (expectedSidecar %s) error: %v did not match %v (k %v)", test.configuration, test.expectedSidecar, err, test.expectedError, key)
 		}
 		if key != test.expectedSidecar {

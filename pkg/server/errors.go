@@ -5,8 +5,6 @@ import (
 )
 
 var (
-	// ErrSkipIgnoredNamespace ...
-	ErrSkipIgnoredNamespace = fmt.Errorf("Skipping pod in ignored namespace")
 	// ErrSkipAlreadyInjected ...
 	ErrSkipAlreadyInjected = fmt.Errorf("Skipping pod that has already been injected")
 	// ErrMissingRequestAnnotation ...
@@ -20,8 +18,6 @@ var (
 func GetErrorReason(err error) string {
 	var reason string
 	switch err {
-	case ErrSkipIgnoredNamespace:
-		reason = "ignored_namespace"
 	case ErrSkipAlreadyInjected:
 		reason = "already_injected"
 	case ErrMissingRequestAnnotation:
