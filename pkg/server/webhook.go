@@ -79,11 +79,6 @@ var (
 	)
 )
 
-var ignoredNamespaces = []string{
-	metav1.NamespaceSystem,
-	metav1.NamespacePublic,
-}
-
 // WebhookServer is a server that handles mutating admission webhooks
 type WebhookServer struct {
 	Config *config.Config
@@ -506,17 +501,6 @@ func (whsvr *WebhookServer) mutate(req *v1beta1.AdmissionRequest) *v1beta1.Admis
 		podName = pod.Name
 	} else if req.Name != "" {
 		podName = req.Name
-	}
-
-	// skip special kubernetes system namespaces
-	for _, namespace := range ignoredNamespaces {
-		if req.Namespace == namespace {
-			glog.Infof("Skipping mutation of %s/%s: %s", req.Namespace, podName, "Skipping pod in ignored namespace")
-			injectionCounter.With(prometheus.Labels{"status": "skipped", "reason": "ignored_namespace", "requested": ""}).Inc()
-			return &v1beta1.AdmissionResponse{
-				Allowed: true,
-			}
-		}
 	}
 
 	// determine whether to perform mutation
