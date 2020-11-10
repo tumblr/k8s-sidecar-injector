@@ -16,7 +16,6 @@ exec k8s-sidecar-injector \
   --v="${LOG_LEVEL}" \
   --lifecycle-port="${LIFECYCLE_PORT}" \
   --tls-port="${TLS_PORT}" \
-  --annotation-namespace="${ANNOTATION_NAMESPACE}" \
   --config-directory="${CONFIG_DIR}" \
   --tls-cert-file="${TLS_CERT_FILE}" \
   --tls-key-file="${TLS_KEY_FILE}" \
