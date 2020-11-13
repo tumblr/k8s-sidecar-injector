@@ -194,6 +194,18 @@ var (
 			HostNetwork: true,
 			HostPID:     true,
 		},
+		"prepend-containers": testhelper.ConfigExpectation{
+			Name:               "prepend-containers",
+			Version:            "latest",
+			Path:               fixtureSidecarsDir + "/prepend-containers.yaml",
+			EnvCount:           0,
+			ContainerCount:     2,
+			VolumeCount:        0,
+			VolumeMountCount:   0,
+			HostAliasCount:     0,
+			InitContainerCount: 0,
+			PrependContainers:  true,
+		},
 	}
 )
 

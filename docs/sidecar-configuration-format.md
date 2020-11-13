@@ -38,6 +38,13 @@ name: "test:v1.2"
 # NOTE: this is relative to the current file, and does not allow for absolute pathing!
 inherits: "some-sidecar.yaml"
 
+# prependContainers modifies the behaviour of the injector so that containers
+# are injected at the top of the list of normal containers, rather than the
+# bottom. Defaults to `false`. This primarily allows exploitation of this workaround for
+# ensuring sidecars finish starting before the other containers in the pod are launched:
+# https://medium.com/@marko.luksa/delaying-application-start-until-sidecar-is-ready-2ec2d21a7b74
+prependContainers: false
+
 containers:
 # we inject a nginx container
 - name: sidecar-nginx

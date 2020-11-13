@@ -133,6 +133,21 @@ var (
 				InitContainerCount: 1,
 			},
 		},
+
+		"configmap-prepend-containers": []testhelper.ConfigExpectation{
+			testhelper.ConfigExpectation{
+				Name:               "prepend-containers",
+				Version:            "latest",
+				Path:               fixtureSidecarsDir + "/prepend-containers.yaml",
+				VolumeCount:        0,
+				EnvCount:           0,
+				ContainerCount:     2,
+				VolumeMountCount:   0,
+				HostAliasCount:     0,
+				InitContainerCount: 0,
+				PrependContainers:  true,
+			},
+		},
 	}
 )
 

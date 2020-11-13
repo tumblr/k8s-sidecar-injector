@@ -1,0 +1,38 @@
+[
+  {
+    "op": "add",
+    "path": "/spec/containers",
+    "value": [
+      {
+        "image": "foo:69",
+        "name": "sidecar-existing-vm",
+        "ports": [
+          {
+            "containerPort": 420
+          }
+        ],
+        "resources": {}
+      }
+    ]
+  },
+  {
+    "op": "add",
+    "path": "/spec/containers/0",
+    "value": {
+      "image": "nginx:1.12.2",
+      "imagePullPolicy": "IfNotPresent",
+      "name": "sidecar-add-vm",
+      "ports": [
+        {
+          "containerPort": 80
+        }
+      ],
+      "resources": {}
+    }
+  },
+  {
+    "op": "add",
+    "path": "/metadata/annotations/injector.unittest.com~1status",
+    "value": "injected"
+  }
+]
