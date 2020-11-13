@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -78,11 +79,6 @@ var (
 	)
 )
 
-var ignoredNamespaces = []string{
-	metav1.NamespaceSystem,
-	metav1.NamespacePublic,
-}
-
 // WebhookServer is a server that handles mutating admission webhooks
 type WebhookServer struct {
 	Config *config.Config
@@ -136,15 +132,7 @@ func (whsvr *WebhookServer) requestAnnotationKey() string {
 
 // Check whether the target resoured need to be mutated. returns the canonicalized full name of the injection config
 // if found, or an error if not.
-func (whsvr *WebhookServer) getSidecarConfigurationRequested(ignoredList []string, metadata *metav1.ObjectMeta) (string, error) {
-	// skip special kubernetes system namespaces
-	for _, namespace := range ignoredList {
-		if metadata.Namespace == namespace {
-			glog.Infof("Pod %s/%s should skip injection due to ignored namespace", metadata.Name, metadata.Namespace)
-			return "", ErrSkipIgnoredNamespace
-		}
-	}
-
+func (whsvr *WebhookServer) getSidecarConfigurationRequested(metadata *metav1.ObjectMeta) (string, error) {
 	annotations := metadata.GetAnnotations()
 	if annotations == nil {
 		annotations = map[string]string{}
@@ -155,23 +143,19 @@ func (whsvr *WebhookServer) getSidecarConfigurationRequested(ignoredList []strin
 
 	status, ok := annotations[statusAnnotationKey]
 	if ok && strings.ToLower(status) == StatusInjected {
-		glog.Infof("Pod %s/%s annotation %s=%s indicates injection already satisfied, skipping", metadata.Namespace, metadata.Name, statusAnnotationKey, status)
-		return "", ErrSkipAlreadyInjected
+		return "", fmt.Errorf("%w: annotation %s=%s indicates injection already satisfied", ErrSkipAlreadyInjected, statusAnnotationKey, status)
 	}
 
 	// determine whether to perform mutation based on annotation for the target resource
 	requestedInjection, ok := annotations[requestAnnotationKey]
 	if !ok {
-		glog.Infof("Pod %s/%s annotation %s is missing, skipping injection", metadata.Namespace, metadata.Name, requestAnnotationKey)
-		return "", ErrMissingRequestAnnotation
+		return "", fmt.Errorf("%w: %s", ErrMissingRequestAnnotation, requestAnnotationKey)
 	}
 	ic, err := whsvr.Config.GetInjectionConfig(requestedInjection)
 	if err != nil {
-		glog.Errorf("Mutation policy for pod %s/%s: %v", metadata.Namespace, metadata.Name, err)
-		return "", ErrRequestedSidecarNotFound
+		return "", fmt.Errorf("%w: %s", ErrRequestedSidecarNotFound, requestedInjection)
 	}
 
-	glog.Infof("Pod %s/%s annotation %s=%s requesting sidecar config %s", metadata.Namespace, metadata.Name, requestAnnotationKey, requestedInjection, ic.FullName())
 	return ic.FullName(), nil
 }
 
@@ -510,16 +494,31 @@ func (whsvr *WebhookServer) mutate(req *v1beta1.AdmissionRequest) *v1beta1.Admis
 	glog.Infof("AdmissionReview for Kind=%s, Namespace=%s Name=%s (%s) UID=%s patchOperation=%s UserInfo=%s",
 		req.Kind, req.Namespace, req.Name, pod.Name, req.UID, req.Operation, req.UserInfo)
 
+	// the admission request may not provide a name in the request itself or in
+	// the metadata of the object
+	podName := "<pod name not available>"
+	if pod.Name != "" {
+		podName = pod.Name
+	} else if req.Name != "" {
+		podName = req.Name
+	}
+
 	// determine whether to perform mutation
-	injectionKey, err := whsvr.getSidecarConfigurationRequested(ignoredNamespaces, &pod.ObjectMeta)
+	injectionKey, err := whsvr.getSidecarConfigurationRequested(&pod.ObjectMeta)
 	if err != nil {
-		glog.Infof("Skipping mutation of %s/%s: %v", pod.Namespace, pod.Name, err)
+		if errors.Is(err, ErrRequestedSidecarNotFound) {
+			glog.Errorf("Mutation policy for pod %s/%s: %v", req.Namespace, podName, err)
+		} else {
+			glog.Infof("Skipping mutation of %s/%s: %v", req.Namespace, podName, err)
+		}
 		reason := GetErrorReason(err)
 		injectionCounter.With(prometheus.Labels{"status": "skipped", "reason": reason, "requested": injectionKey}).Inc()
 		return &v1beta1.AdmissionResponse{
 			Allowed: true,
 		}
 	}
+
+	glog.Infof("Pod %s/%s requesting sidecar config %s", req.Namespace, podName, injectionKey)
 
 	injectionConfig, err := whsvr.Config.GetInjectionConfig(injectionKey)
 	if err != nil {

@@ -8,6 +8,12 @@ metadata:
 webhooks:
 - name: "injector.tumblr.com"
   failurePolicy: "Ignore" # we fail "open" if the webhook is down hard
+  # You may want to ignore kube-system to prevent disrupting key services
+  # https://kubernetes.io/docs/reference/access-authn-authz/extensible-admission-controllers/#avoiding-operating-on-the-kube-system-namespace
+  namespaceSelector:
+    matchExpressions:
+      - key: injector.tumblr.com/ignore
+        operator: DoesNotExist
   rules:
   - operations: [ "CREATE" ]
     apiGroups: [""]
