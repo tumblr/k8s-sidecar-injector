@@ -22,6 +22,7 @@ type ConfigExpectation struct {
 	HostPID            bool
 	InitContainerCount int
 	ServiceAccount     string
+	SkipHostNetwork    bool
 
 	// LoadError is an error, if any, that is expected during load
 	LoadError error

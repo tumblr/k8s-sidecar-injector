@@ -194,6 +194,18 @@ var (
 			HostNetwork: true,
 			HostPID:     true,
 		},
+		"skip-host-network": testhelper.ConfigExpectation{
+			Name:               "skip-host-network",
+			Version:            "latest",
+			Path:               fixtureSidecarsDir + "/skip-host-network.yaml",
+			EnvCount:           2,
+			ContainerCount:     2,
+			VolumeCount:        1,
+			VolumeMountCount:   0,
+			HostAliasCount:     0,
+			InitContainerCount: 0,
+			SkipHostNetwork:    true,
+		},
 	}
 )
 

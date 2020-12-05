@@ -531,6 +531,14 @@ func (whsvr *WebhookServer) mutate(req *v1beta1.AdmissionRequest) *v1beta1.Admis
 		}
 	}
 
+	if injectionConfig.SkipHostNetwork && pod.Spec.HostNetwork {
+		glog.Infof("Injection skipped, pod (%s/%s) hostNetwork = true while SkipHostNetwork is enabled in sidecar config (%s)", pod.Namespace, pod.Name, injectionConfig.Name)
+		injectionCounter.With(prometheus.Labels{"status": "skipped", "reason": "skip_host_network", "requested": injectionKey}).Inc()
+		return &v1beta1.AdmissionResponse{
+			Allowed: true,
+		}
+	}
+
 	// Workaround: https://github.com/kubernetes/kubernetes/issues/57982
 	applyDefaultsWorkaround(injectionConfig.Containers, injectionConfig.Volumes)
 	annotations := map[string]string{}
