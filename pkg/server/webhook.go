@@ -12,8 +12,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/tumblr/k8s-sidecar-injector/internal/pkg/config"
-	"k8s.io/api/admission/v1beta1"
-	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
+	v1 "k8s.io/api/admission/v1"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -97,7 +97,7 @@ type patchOperation struct {
 
 func init() {
 	_ = corev1.AddToScheme(runtimeScheme)
-	_ = admissionregistrationv1beta1.AddToScheme(runtimeScheme)
+	_ = admissionregistrationv1.AddToScheme(runtimeScheme)
 	// defaulting with webhooks:
 	// https://github.com/kubernetes/kubernetes/issues/57982
 	_ = corev1.AddToScheme(runtimeScheme)
@@ -495,12 +495,13 @@ func createPatch(pod *corev1.Pod, inj *config.InjectionConfig, annotations map[s
 }
 
 // main mutation process
-func (whsvr *WebhookServer) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+func (whsvr *WebhookServer) mutate(req *v1.AdmissionRequest) *v1.AdmissionResponse {
 	var pod corev1.Pod
+
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
 		glog.Errorf("Could not unmarshal raw object: %v", err)
 		injectionCounter.With(prometheus.Labels{"status": "error", "reason": "unmarshal_error", "requested": ""}).Inc()
-		return &v1beta1.AdmissionResponse{
+		return &v1.AdmissionResponse{
 			Result: &metav1.Status{
 				Message: err.Error(),
 			},
@@ -516,7 +517,7 @@ func (whsvr *WebhookServer) mutate(req *v1beta1.AdmissionRequest) *v1beta1.Admis
 		glog.Infof("Skipping mutation of %s/%s: %v", pod.Namespace, pod.Name, err)
 		reason := GetErrorReason(err)
 		injectionCounter.With(prometheus.Labels{"status": "skipped", "reason": reason, "requested": injectionKey}).Inc()
-		return &v1beta1.AdmissionResponse{
+		return &v1.AdmissionResponse{
 			Allowed: true,
 		}
 	}
@@ -526,7 +527,7 @@ func (whsvr *WebhookServer) mutate(req *v1beta1.AdmissionRequest) *v1beta1.Admis
 		glog.Errorf("Error getting injection config %s, permitting launch of pod with no sidecar injected: %s", injectionConfig, err.Error())
 		// dont prevent pods from launching! just return allowed
 		injectionCounter.With(prometheus.Labels{"status": "skipped", "reason": "missing_config", "requested": injectionKey}).Inc()
-		return &v1beta1.AdmissionResponse{
+		return &v1.AdmissionResponse{
 			Allowed: true,
 		}
 	}
@@ -538,7 +539,7 @@ func (whsvr *WebhookServer) mutate(req *v1beta1.AdmissionRequest) *v1beta1.Admis
 	patchBytes, err := createPatch(&pod, injectionConfig, annotations)
 	if err != nil {
 		injectionCounter.With(prometheus.Labels{"status": "error", "reason": "patching_error", "requested": injectionKey}).Inc()
-		return &v1beta1.AdmissionResponse{
+		return &v1.AdmissionResponse{
 			Result: &metav1.Status{
 				Message: err.Error(),
 			},
@@ -547,11 +548,11 @@ func (whsvr *WebhookServer) mutate(req *v1beta1.AdmissionRequest) *v1beta1.Admis
 
 	glog.Infof("AdmissionResponse: patch=%v\n", string(patchBytes))
 	injectionCounter.With(prometheus.Labels{"status": "success", "reason": "all_groovy", "requested": injectionKey}).Inc()
-	return &v1beta1.AdmissionResponse{
+	return &v1.AdmissionResponse{
 		Allowed: true,
 		Patch:   patchBytes,
-		PatchType: func() *v1beta1.PatchType {
-			pt := v1beta1.PatchTypeJSONPatch
+		PatchType: func() *v1.PatchType {
+			pt := v1.PatchTypeJSONPatch
 			return &pt
 		}(),
 	}
@@ -597,28 +598,30 @@ func (whsvr *WebhookServer) mutateHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var admissionResponse *v1beta1.AdmissionResponse
-	ar := v1beta1.AdmissionReview{}
-	if _, _, err := deserializer.Decode(body, nil, &ar); err != nil {
+	var admissionResponse *v1.AdmissionResponse
+	admissionReviewRequest := v1.AdmissionReview{}
+	if _, _, err := deserializer.Decode(body, nil, &admissionReviewRequest); err != nil {
 		glog.Errorf("Can't decode body: %v", err)
-		admissionResponse = &v1beta1.AdmissionResponse{
+		admissionResponse = &v1.AdmissionResponse{
 			Result: &metav1.Status{
 				Message: err.Error(),
 			},
 		}
 	} else {
-		admissionResponse = whsvr.mutate(ar.Request)
+		admissionResponse = whsvr.mutate(admissionReviewRequest.Request)
 	}
 
-	admissionReview := v1beta1.AdmissionReview{}
+	admissionReviewResponse := v1.AdmissionReview{}
+	admissionReviewResponse.APIVersion = admissionReviewRequest.APIVersion
+	admissionReviewResponse.Kind = admissionReviewRequest.Kind
 	if admissionResponse != nil {
-		admissionReview.Response = admissionResponse
-		if ar.Request != nil {
-			admissionReview.Response.UID = ar.Request.UID
+		admissionReviewResponse.Response = admissionResponse
+		if admissionReviewRequest.Request != nil {
+			admissionReviewResponse.Response.UID = admissionReviewRequest.Request.UID
 		}
 	}
 
-	resp, err := json.Marshal(admissionReview)
+	resp, err := json.Marshal(admissionReviewResponse)
 	if err != nil {
 		glog.Errorf("Can't encode response: %v", err)
 		http.Error(w, fmt.Sprintf("could not encode response: %v", err), http.StatusInternalServerError)
