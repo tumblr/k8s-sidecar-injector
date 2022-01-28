@@ -13,7 +13,7 @@ import (
 	"github.com/nsf/jsondiff" // for json diffing patches
 	"github.com/tumblr/k8s-sidecar-injector/internal/pkg/config"
 	_ "github.com/tumblr/k8s-sidecar-injector/internal/pkg/testing"
-	"k8s.io/api/admission/v1beta1"
+	v1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -79,7 +79,7 @@ type expectedSidecarConfiguration struct {
 
 type mutationTest struct {
 	// name is a file relative to test/fixtures/k8s/admissioncontrol/request/ ending in .yaml
-	//  which is the v1beta1.AdmissionRequest object passed to mutate
+	//  which is the v1.AdmissionRequest object passed to mutate
 	name          string
 	allowed       bool
 	patchExpected bool
@@ -143,7 +143,7 @@ func TestMutation(t *testing.T) {
 
 	for _, test := range mutationTests {
 		// now, try to perform the mutation on the k8s object
-		var req v1beta1.AdmissionRequest
+		var req v1.AdmissionRequest
 		reqFile := fmt.Sprintf("test/fixtures/k8s/admissioncontrol/request/%s.yaml", test.name)
 		resPatchFile := fmt.Sprintf("test/fixtures/k8s/admissioncontrol/patch/%s.json", test.name)
 		// load the AdmissionRequest object
